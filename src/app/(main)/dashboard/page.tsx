@@ -1,52 +1,33 @@
 import Link from 'next/link'
-import { CreditCard, Settings, User } from 'lucide-react'
+import { Briefcase, HardHat, ListChecks, Users } from 'lucide-react'
+
+const SHORTCUTS = [
+  { href: '/clients', label: 'Clients', icon: Users, desc: 'Sociétés & particuliers' },
+  { href: '/affaires', label: 'Affaires', icon: Briefcase, desc: 'Pipeline commercial' },
+  { href: '/chantiers', label: 'Chantiers', icon: HardHat, desc: 'Suivi d’exécution' },
+  { href: '/taches', label: 'Tâches', icon: ListChecks, desc: 'Mes rappels du jour' },
+]
 
 export default function DashboardPage() {
   return (
-    <div className='container mx-auto py-8 px-4 max-w-4xl'>
-      <h1 className='text-3xl font-bold tracking-tight mb-2'>Dashboard</h1>
-      <p className='text-muted-foreground mb-8'>Welcome to your dashboard</p>
+    <div className='mx-auto max-w-4xl px-4 py-8'>
+      <h1 className='mb-2 text-3xl font-bold tracking-tight'>Tableau de bord</h1>
+      <p className='mb-8 text-muted-foreground'>Vue d’ensemble de votre activité.</p>
 
-      <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-        {/* Billing Demo Card */}
-        <Link
-          href='/dashboard/billing'
-          className='group rounded-lg border p-6 hover:border-primary hover:bg-muted/50 transition-colors'
-        >
-          <div className='flex items-center gap-3 mb-3'>
-            <div className='p-2 rounded-lg bg-primary/10 text-primary'>
-              <CreditCard className='h-5 w-5' />
+      <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+        {SHORTCUTS.map(({ href, label, icon: Icon, desc }) => (
+          <Link
+            key={href}
+            href={href}
+            className='group rounded-lg border p-5 transition-colors hover:border-primary hover:bg-muted/50'
+          >
+            <div className='mb-3 flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary'>
+              <Icon className='size-5' />
             </div>
-            <h2 className='text-lg font-semibold group-hover:text-primary transition-colors'>
-              Billing Demo
-            </h2>
-          </div>
-          <p className='text-sm text-muted-foreground'>
-            Explore the billing system integration with better-auth payment plugins.
-          </p>
-        </Link>
-
-        {/* Profile Card (placeholder) */}
-        <div className='rounded-lg border p-6 opacity-60'>
-          <div className='flex items-center gap-3 mb-3'>
-            <div className='p-2 rounded-lg bg-muted'>
-              <User className='h-5 w-5' />
-            </div>
-            <h2 className='text-lg font-semibold'>Profile</h2>
-          </div>
-          <p className='text-sm text-muted-foreground'>Manage your account settings.</p>
-        </div>
-
-        {/* Settings Card (placeholder) */}
-        <div className='rounded-lg border p-6 opacity-60'>
-          <div className='flex items-center gap-3 mb-3'>
-            <div className='p-2 rounded-lg bg-muted'>
-              <Settings className='h-5 w-5' />
-            </div>
-            <h2 className='text-lg font-semibold'>Settings</h2>
-          </div>
-          <p className='text-sm text-muted-foreground'>Configure your preferences.</p>
-        </div>
+            <h2 className='font-semibold group-hover:text-primary'>{label}</h2>
+            <p className='text-sm text-muted-foreground'>{desc}</p>
+          </Link>
+        ))}
       </div>
     </div>
   )

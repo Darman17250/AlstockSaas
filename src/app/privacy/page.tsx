@@ -60,9 +60,7 @@ export default async function PrivacyPage() {
 
             <section>
               <h2 className='mb-4 text-xl font-semibold text-foreground'>5. data security</h2>
-              <p>
-                we take reasonable steps to secure your info but can't guarantee 100% security.
-              </p>
+              <p>we take reasonable steps to secure your info but can't guarantee 100% security.</p>
             </section>
 
             <section>

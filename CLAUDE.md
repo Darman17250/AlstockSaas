@@ -1,198 +1,188 @@
-# ShipFree - AI Agent Onboarding Guide
+# CLAUDE.md — CRM & Suivi de chantiers BTP
 
-## Overview
+Document de contexte fondateur. Claude Code le lit à chaque session. Il fait autorité sur l'architecture, les conventions et les garde-fous. En cas de doute, suivre ce document avant toute habitude par défaut.
 
-ShipFree is a production-ready Next.js boilerplate designed to help developers ship startups quickly. It's a free, open-source alternative to ShipFast, built with modern web technologies and best practices.
+---
 
-### Key Characteristics
-- **Framework**: Next.js  with App Router
-- **Runtime**: Bun (package manager and runtime)
-- **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: Better-Auth with multiple OAuth providers
-- **Payments**: Multi-provider support (Stripe, Polar, Lemon Squeezy)
-- **Email**: Multi-provider support (Resend, Postmark, Plunk, Nodemailer)
-- **UI**: TailwindCSS 4, BaseUI components, Shadcn-style patterns
-- **Internationalization**: next-intl (i18n) with support for en, es, fr
-- **Monitoring**: Sentry integration
-- **Storage**: Cloudflare R2 support
+## 1. Le produit
 
-## Architecture
+SaaS de **CRM + suivi de chantiers** pour le BTP (cible TPE → PME). Principe directeur : **zéro ressaisie** — la donnée commerciale (contact, affaire) se prolonge en exécution (chantier) sans être retapée.
 
-### Project Structure
+Chaîne métier : `Société/Contact → Affaire (pipeline) → [gagnée] → Chantier → Rapports + Pointage`.
 
-Application code lives under `src/`. The path alias `@/*` maps to `src/*` (e.g. `@/lib/auth` is `src/lib/auth`).
+**Affaire et Chantier sont deux entités distinctes reliées.** Une affaire gagnée se convertit en chantier (pré-remplissage), une affaire perdue ne crée rien, un client peut avoir plusieurs chantiers.
 
+Le modèle de données complet (entités, champs, relations) vit dans `docs/cadrage-crm-chantiers-mvp.md`. **Le consulter avant toute feature touchant la base.**
+
+### Hors périmètre — NE PAS implémenter
+Facturation, devis, étude de prix/chiffrage, situations de travaux, recouvrement, factures fournisseurs, export paie, stock/dépôts/matériel. Si une demande de feature dérive vers ces sujets, s'arrêter et demander confirmation.
+
+---
+
+## 2. Stack & outillage
+
+- **Runtime / package manager : Bun** (pas npm/pnpm/yarn).
+- **Next.js 16**, App Router, React Server Components par défaut.
+- **TypeScript strict** partout.
+- **Drizzle ORM** + **PostgreSQL** (Supabase comme hébergeur Postgres + Storage).
+- **Better-Auth** + plugin **organization** pour l'auth et le multi-tenant.
+- **Tailwind** + composants UI du boilerplate (Base UI / Shadcn selon la config du repo — ne pas mélanger deux systèmes de composants).
+- **Zod** pour toute validation d'entrée.
+- **Supabase Storage** pour photos et documents (URLs signées).
+
+### Commandes (Bun) — scripts réels du `package.json`
+```bash
+bun install                     # dépendances
+bun run dev                     # serveur de dev (next dev)
+bun run build                   # build prod (next build)
+bun run generate-migration      # générer une migration depuis le schéma (drizzle-kit generate)
+bun run migrate:local           # appliquer les migrations en local (scripts/migrate.ts)
+bun run migrate:prod            # appliquer les migrations en prod
+bunx @better-auth/cli migrate   # créer/MAJ les tables Better-Auth (org, member, invitation…)
+bun run lint                    # lint (biome lint)
+bun run format                  # format (biome format --write)
+bun run biome:check             # lint + format combinés (biome check)
+bun run typecheck               # vérif types (tsc --noEmit)
 ```
-ShipFree/
-├── src/                    # Application source
-│   ├── app/                # Next.js App Router pages and routes
-│   │   ├── [locale]/       # Internationalized routes
-│   │   │   ├── (auth)/     # Authentication pages (login, register, etc.)
-│   │   │   ├── (main)/     # Main app pages (dashboard, etc.)
-│   │   │   └── (site)/     # Marketing/landing pages
-│   │   ├── api/            # API routes
-│   │   │   ├── auth/       # Better-Auth endpoints
-│   │   │   ├── payments/   # Payment processing
-│   │   │   └── webhooks/   # Webhook handlers
-│   │   └── _providers/     # React context providers
-│   ├── components/         # Reusable React components
-│   │   ├── emails/        # Email templates (React Email)
-│   │   └── ui/            # BaseUI/Shadcn UI components
-│   ├── config/            # Configuration files
-│   │   ├── env.ts        # Environment variable validation (t3-env)
-│   │   ├── payments.ts   # Payment plans and pricing
-│   │   ├── branding.ts   # Brand configuration
-│   │   └── feature-flags.ts
-│   ├── database/          # Database schema and connection
-│   │   ├── schema.ts     # Drizzle ORM schema
-│   │   └── index.ts      # Database connection
-│   ├── lib/               # Core libraries and utilities
-│   │   ├── auth/         # Authentication setup
-│   │   ├── payments/     # Payment service and adapters
-│   │   ├── messaging/    # Email service and providers
-│   │   ├── storage.ts    # Cloudflare R2 storage client
-│   │   └── utils/        # Utility functions
-│   ├── i18n/              # Internationalization configuration
-│   │   ├── routing.ts    # Routing configuration
-│   │   └── request.ts    # Request configuration
-│   ├── messages/          # Translation files (JSON format)
-│   │   ├── en.json
-│   │   ├── fr.json
-│   │   └── es.json
-│   └── hooks/             # React hooks
-├── scripts/               # Runtime scripts (e.g. migrate.ts)
-├── migrations/            # Drizzle migrations
-├── drizzle.config.ts      # Drizzle Kit config
-└── instrumentation*.ts    # Sentry and Next.js instrumentation
+**Lint/format = Biome** (`biome.json`), pas ESLint/Prettier. Drizzle : schéma dans `src/database/schema.ts`, migrations dans `./migrations/` (cf. `drizzle.config.ts`).
+Toujours lancer `typecheck` + `lint` avant de considérer une feature terminée.
+
+---
+
+## 3. Architecture monorepo (API-first)
+
+Objectif : du code métier réutilisable web **et** futur mobile natif. La logique ne vit jamais dans les composants ni dans les routes — elle vit dans des packages partagés. Routes et Server Actions ne sont qu'une **façade fine** au-dessus de la couche services.
+
+Structure cible (Bun workspaces) :
+```
+apps/
+  web/                 # app Next.js (UI + façade routes/actions)
+  mobile/              # (V2) app mobile native, consomme les mêmes services/API
+packages/
+  db/                  # schémas Drizzle + client db + migrations
+  auth/                # config Better-Auth partagée (serveur + client)
+  core/                # logique métier : services par domaine (crm, chantiers…)
+  validation/          # schémas Zod partagés (entrées/sorties)
+  types/               # types TS partagés dérivés du schéma db et de Zod
 ```
 
-### Key Patterns
+> ⚠️ **État actuel vs cible.** Le repo part du boilerplate **ShipFree** : application Next.js unique sous `src/` (alias `@/*` → `src/*`), **sans** workspaces ni `apps/`/`packages/`. La structure monorepo ci-dessus est l'**objectif** vers lequel migrer, pas l'état présent. De même, le routage `[locale]`/i18n du boilerplate a été retiré, et `docs/cadrage-crm-chantiers-mvp.md` n'existe pas encore (créer le cadrage avant de s'appuyer dessus). Quand un point de ce document parle de `packages/core`, `packages/db`, etc., l'appliquer à l'emplacement actuel équivalent (`src/lib/*`, `src/database/*`) tant que la migration monorepo n'est pas faite.
 
-#### 1. **Server Components by Default**
-- Most components are Server Components unless marked with `'use client'`
-- Client components are used for interactivity (forms, state, etc.)
+Règles :
+- Un **service** = une fonction métier pure, qui reçoit le contexte (`{ organizationId, member }`) en argument et ne lit jamais la session elle-même. Testable sans HTTP.
+- Les Server Actions / Route Handlers récupèrent la session, en extraient le contexte, appellent un service, renvoient le résultat. Rien de plus.
+- Les types traversent les couches via `packages/types` ; pas de redéfinition locale.
 
-#### 2. **Route Groups**
-- `(auth)`, `(main)`, `(site)` are route groups for organization
-- They don't affect URL structure but organize layouts
+---
 
-#### 3. **Internationalization**
-- All routes are under `[locale]` dynamic segment
-- Supported languages: `en`, `es`, `fr`
-- Use `next-intl` for translations
-- Server components: Use `getTranslations` from `next-intl/server`
-- Client components: Use `useTranslations` hook from `next-intl`
+## 4. Multi-tenant & authentification
 
-#### 4. **Environment Configuration**
-- All env vars validated via `@t3-oss/env-nextjs` in `src/config/env.ts`
-- Server-only vars in `server` object
-- Client-accessible vars in `client` object (prefixed with `NEXT_PUBLIC_`)
+Le multi-tenant est la contrainte la plus critique du projet. Une fuite inter-organisation est un bug de sécurité bloquant.
 
-## Code Style
+### Plugin organization
+- Les tables `organization`, `member`, `invitation` et le champ `session.activeOrganizationId` sont **fournis par le plugin Better-Auth `organization`**. Ne PAS les recréer dans le schéma Drizzle métier.
+- `session.activeOrganizationId` est la **primitive centrale** : c'est l'organisation dans laquelle l'utilisateur agit. Tout accès métier s'y rattache.
+- Gestion des membres et invitations : passer par les API du plugin (`inviteMember`, `addMember`, `updateMemberRole`, `removeMember`), pas par des écritures Drizzle directes.
 
-### TypeScript
+### Rôles métier
+Définis comme **rôles custom** du plugin (access control), en plus des rôles natifs :
+- `admin` (mappé sur le owner/admin de l'org) — accès complet.
+- `commercial` — CRM complet, lecture chantiers.
+- `conducteur` — chantiers complets, lecture CRM.
+- `terrain` — rapports + pointage sur chantiers assignés, lecture limitée.
 
-- **Strict mode**: Enabled
-- **Path aliases**: `@/*` maps to `src/*`
-- **No implicit any**: Enabled
+Les permissions sont vérifiées dans la couche service (jamais seulement côté UI).
 
-### React Patterns
+### Cloisonnement — règle d'or
+**ShipFree utilise Better-Auth, pas Supabase Auth.** Les RLS Supabase basées sur `auth.uid()` ne fonctionnent donc PAS automatiquement (la session Better-Auth n'est pas dans le JWT Supabase). Conséquence :
 
-1. **Component Naming**: PascalCase
-2. **File Naming**: kebab-case for files, PascalCase for components
-3. **Hooks**: Prefix with `use`
-4. **Event Handlers**: Prefix with `handle` (e.g., `handleClick`)
-5. **Const over function**: Prefer `const fn = () => {}` over `function fn() {}`
+- Le cloisonnement de référence est **applicatif et obligatoire**. **Chaque** requête Drizzle sur une table métier filtre sur `organizationId = activeOrganizationId`.
+- Centraliser : un helper `getOrgContext()` extrait `{ organizationId, member, role }` de la session et **toute** fonction service le reçoit. Aucune requête métier ne s'exécute sans ce filtre.
+- Ne jamais accepter un `organizationId` venant du client : toujours le dériver de la session côté serveur.
+- (Défense en profondeur, optionnel) Si on ajoute du RLS Postgres plus tard, il faudra propager le contexte org via `set_config`/rôle dédié, pas via `auth.uid()`.
 
-### Styling
+---
 
-- **TailwindCSS**: Primary styling method
-- **No CSS files**: Avoid custom CSS, use Tailwind classes
-- **Class utilities**: Use `cn()` from `src/lib/utils/css.ts` (or `@/lib/utils/css.ts`) for conditional classes
+## 5. Conventions base de données (Drizzle)
 
-## Common Tasks
+- Toute table métier porte : `id` (uuid pk), `organizationId` (fk, **non null**, indexée), `createdAt`, `updatedAt` (timestamptz). Exceptions : les tables du plugin Better-Auth.
+- Nommage tables : `snake_case` singulier (`deal`, `site_report`, `time_entry`). Colonnes : `camelCase` côté Drizzle / `snake_case` en base.
+- Enums applicatifs (stage, status, relationType, role…) définis comme enums Postgres via Drizzle, pas des `text` libres.
+- Clés étrangères explicites avec `references()` et stratégie `onDelete` réfléchie (ex. supprimer un chantier ne doit pas casser ses rapports silencieusement).
+- **Suppression** : privilégier le soft-delete (`deletedAt`) sur les entités à valeur métier (affaires, chantiers) ; filtrer `deletedAt is null` par défaut.
+- Index sur `organizationId` + colonnes de filtre fréquentes (`status`, `stage`, `siteId`).
+- Toute modif de schéma → `bun drizzle-kit generate` puis migration versionnée commitée. Jamais de modif manuelle en base.
 
-### Adding a New Page
+---
 
-1. Create file in `src/app/[locale]/(group)/page.tsx`
-2. Add metadata export if needed
-3. Use appropriate layout group
-4. Add translations if needed
+## 6. Couche métier & validation
 
-### Adding an API Route
+- Logique dans `packages/core`, organisée par domaine : `core/crm/*`, `core/chantiers/*`.
+- Chaque entrée externe (Server Action, Route Handler) valide ses données avec un schéma **Zod** de `packages/validation` avant d'appeler un service. Pas de données non validées dans un service.
+- Les services renvoient des résultats typés ; les erreurs métier sont des erreurs typées (pas de `throw` de strings).
+- Pas d'accès db hors de `packages/db` et `packages/core`. Un composant ou une route n'importe jamais Drizzle directement.
 
-1. Create file in `src/app/api/{route}/route.ts`
-2. Export `GET`, `POST`, etc. functions
-3. Validate input with Zod
-4. Handle errors gracefully
-5. Return JSON responses
+---
 
-### Adding a Database Table
+## 7. Conventions Next.js
 
-1. Define schema in `src/database/schema.ts`
-2. Add relations if needed
-3. Generate migration: `bun run generate-migration`
-4. Run migration: `bun run migrate:local`
+- **Server Components par défaut.** `"use client"` uniquement quand il y a interactivité (kanban drag & drop, formulaires, saisie terrain).
+- **Mutations → Server Actions** par défaut. **Route Handlers** réservés à ce qui doit être une API consommable par le futur mobile ou des webhooks.
+- Récupération de données : dans les Server Components / services, jamais de `fetch` interne vers ses propres routes.
+- Routes protégées via middleware ; vérifier session **et** appartenance à l'org active.
+- Gestion d'erreurs : `error.tsx` / `not-found.tsx` par segment ; états de chargement avec `loading.tsx` / Suspense.
 
-### Adding a UI Component
+---
 
-1. Use BaseUI components from `src/components/ui/`
-2. Follow existing component patterns
-3. Add proper TypeScript types
-4. Include accessibility attributes
-5. Use Tailwind for styling
+## 8. UI — mobile-first & PWA
 
-### Adding Email Template
+- **Mobile-first non négociable.** Chaque écran est conçu pour le smartphone d'abord (saisie de rapport et pointage sur le terrain), puis étendu au desktop. Tester systématiquement en viewport étroit.
+- **PWA dès le départ** : manifest, service worker, installable. Le mode offline (saisie hors connexion) est V2 mais l'architecture ne doit pas l'empêcher.
+- Un seul système de composants (celui du boilerplate). Composants accessibles, états de chargement et d'erreur explicites.
+- Écrans terrain (rapport, pointage) : formulaires courts, gros boutons tactiles, photo depuis l'appareil.
 
-1. Create template in `src/components/emails/`
-2. Use React Email components
-3. Add subject in `src/components/emails/subjects.ts`
-4. Export render function
-5. Use in auth flows or custom emails
+---
 
-## Development Workflow
+## 9. Conventions de code
 
-### Setup
+- TypeScript strict, pas de `any` (utiliser `unknown` + narrowing si nécessaire).
+- Nommage : composants `PascalCase`, fonctions/variables `camelCase`, fichiers de composants `PascalCase.tsx`, autres `kebab-case`.
+- Fonctions courtes et nommées par intention. Commentaires seulement pour le « pourquoi », pas le « quoi ».
+- Pas de secret en dur ; tout via variables d'environnement (documentées dans `.env.example`).
 
-1. Install dependencies: `bun install`
-2. Copy `.env.example` to `.env`
-3. Set up PostgreSQL database
-4. Run migrations: `bun run migrate:local`
-5. Start dev server: `bun dev`
+---
 
-### Scripts
+## 10. Méthode d'exécution (feature par feature)
 
-- `bun dev`: Start development server
-- `bun build`: Build for production
-- `bun start`: Start production server
-- `bun lint`: Run linter
-- `bun format`: Format code
-- `bun generate-migration`: Generate DB migration
-- `bun migrate:local`: Run migrations locally
+Le développement avance **une feature à la fois**. Pour chaque feature :
 
-### Testing
+1. Lire la section concernée du cadrage (`docs/cadrage-crm-chantiers-mvp.md`) et identifier les entités touchées.
+2. Schéma db d'abord : ajouter/modifier les tables Drizzle, générer + appliquer la migration.
+3. Validation Zod + service métier dans `packages/core`, avec contexte org obligatoire.
+4. Façade : Server Action ou Route Handler minimal.
+5. UI mobile-first.
+6. `bun run typecheck` + `bun run lint`, vérifier le cloisonnement org sur tous les accès db.
+7. S'arrêter et rendre la main pour validation avant de passer à la feature suivante.
 
-- No test framework configured yet
-- Manual testing recommended
-- Use Sentry for error tracking in production
+### Ordre des features MVP
+1. Auth + organisation + invitation de membres + rôles.
+2. Sociétés & contacts (CRUD + fiche 360).
+3. Affaires + pipeline kanban + gagnée/perdue.
+4. Activités & tâches (rappels, vue « mes tâches du jour »).
+5. Chantiers (fiche + conversion depuis affaire gagnée).
+6. Rapports de chantier journaliers + photos.
+7. Pointage des heures.
+8. Dashboards (vue commerciale + vue chantiers).
 
-## Important Notes
+---
 
-1. **Bun Runtime**: This project uses Bun, not Node.js
-2. **Server Components**: Default to Server Components, use `'use client'` only when needed
-3. **Environment Variables**: Always validate via `src/config/env.ts`
-4. **Database**: Use Drizzle ORM, not raw SQL
-5. **Authentication**: Use Better-Auth client/server APIs, don't access DB directly
-6. **Payments**: Use payment service, don't call providers directly
-7. **Email**: Use email mailer, don't call providers directly
-8. **Internationalization**: All user-facing text should be translatable
-9. **Error Handling**: Always handle errors gracefully with proper messages
-10. **Type Safety**: Leverage TypeScript, avoid `any` types
+## 11. Garde-fous (interdits)
 
-## Resources
-
-- **Better-Auth**: https://better-auth.com
-- **Drizzle ORM**: https://orm.drizzle.team
-- **Next.js**: https://nextjs.org/docs
-- **next-intl**: https://next-intl-docs.vercel.app
-- **BaseUI**: https://base-ui.com
+- ❌ Exécuter une requête métier sans filtre `organizationId`.
+- ❌ Accepter un `organizationId` fourni par le client.
+- ❌ Recréer les tables `organization`/`member`/`invitation` (elles viennent du plugin).
+- ❌ Mettre de la logique métier dans un composant ou une route.
+- ❌ Importer Drizzle hors de `packages/db` / `packages/core`.
+- ❌ Implémenter quoi que ce soit du périmètre exclu (facturation, devis, stock…) sans validation explicite.
+- ❌ Compter sur les RLS Supabase `auth.uid()` pour le cloisonnement.
+- ❌ Modifier la base à la main au lieu d'une migration Drizzle versionnée.

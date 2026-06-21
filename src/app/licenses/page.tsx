@@ -34,8 +34,8 @@ export default async function LicensesPage() {
                 2. open-source components
               </h2>
               <p>
-                shipfree includes open-source libraries under their respective licenses (MIT,
-                Apache 2.0, etc.). you must comply with their terms when using or modifying those
+                shipfree includes open-source libraries under their respective licenses (MIT, Apache
+                2.0, etc.). you must comply with their terms when using or modifying those
                 components.
               </p>
             </section>

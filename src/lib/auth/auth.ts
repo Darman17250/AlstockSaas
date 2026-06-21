@@ -2,8 +2,10 @@ import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { nextCookies } from 'better-auth/next-js'
 import { emailOTP, organization } from 'better-auth/plugins'
+import { desc, eq } from 'drizzle-orm'
 
 import { db } from '@/database'
+import { member } from '@/database/schema'
 import { APP_COOKIE_NAME, isProd } from '@/lib/constants'
 import { env } from '@/config/env'
 import { getBaseUrl } from '@/lib/utils'
@@ -15,21 +17,49 @@ import {
 } from '@/components/emails'
 import { getFromEmailAddress, quickValidateEmail, sendEmail } from '@/lib/messaging/email'
 import { isEmailVerificationEnabled } from '@/config/feature-flags'
+import { ac, roles } from './permissions'
 
 export const auth = betterAuth({
   baseURL: getBaseUrl(),
-  trustedOrigins: [getBaseUrl()],
+  // En dev, on tolère localhost sur les ports usuels (le serveur peut démarrer
+  // sur un autre port si le 3001 est pris). En prod, seule l'URL publique.
+  trustedOrigins: isProd
+    ? [getBaseUrl()]
+    : [getBaseUrl(), 'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
   database: drizzleAdapter(db, {
     provider: 'pg',
   }),
 
+  // À la création d'une session (connexion), on définit l'organisation active
+  // par défaut = la dernière organisation rejointe par l'utilisateur. Sans cela,
+  // `activeOrganizationId` resterait null et un membre existant serait renvoyé
+  // vers l'onboarding à chaque reconnexion.
+  databaseHooks: {
+    session: {
+      create: {
+        before: async (session) => {
+          const [m] = await db
+            .select({ organizationId: member.organizationId })
+            .from(member)
+            .where(eq(member.userId, session.userId))
+            .orderBy(desc(member.createdAt))
+            .limit(1)
+          return { data: { ...session, activeOrganizationId: m?.organizationId ?? null } }
+        },
+      },
+    },
+  },
+
   advanced: {
     cookiePrefix: APP_COOKIE_NAME, // Change this to your cookie prefix
+    // Cookies cross-sous-domaines : UNIQUEMENT en prod (sur un vrai domaine).
+    // En dev (localhost), un Domain=.exemple.app rendrait le cookie inutilisable.
     crossSubDomainCookies: {
-      enabled: !isProd,
-      domain: '.shipfree.app', // Change this to your domain, if you are using a custom domain
+      enabled: isProd,
+      domain: '.shipfree.app', // TODO: remplacer par le domaine de prod réel
     },
-    useSecureCookies: !isProd,
+    // Cookies `Secure` seulement sur https (prod) ; en http localhost, false.
+    useSecureCookies: isProd,
   },
 
   session: {
@@ -188,6 +218,39 @@ export const auth = betterAuth({
     }),
 
     organization({
+      ac,
+      roles,
+      sendInvitationEmail: async (data) => {
+        const inviteUrl = `${getBaseUrl()}/accept-invitation/${data.id}`
+        // En dev (EMAIL_PROVIDER=log), le lien d'invitation est tracé ici.
+        console.info('[organization.sendInvitationEmail] Invitation', {
+          email: data.email,
+          role: data.role,
+          organization: data.organization.name,
+          inviteUrl,
+        })
+        try {
+          const html = `
+            <p>Bonjour,</p>
+            <p><strong>${data.inviter.user.name || data.inviter.user.email}</strong> vous invite à rejoindre
+            l'organisation <strong>${data.organization.name}</strong>.</p>
+            <p><a href="${inviteUrl}">Accepter l'invitation</a></p>
+            <p>Ce lien expirera prochainement.</p>
+          `
+          await sendEmail({
+            to: data.email,
+            subject: `Invitation à rejoindre ${data.organization.name}`,
+            html,
+            from: getFromEmailAddress(),
+            emailType: 'transactional',
+          })
+        } catch (error) {
+          console.error('[organization.sendInvitationEmail] Failed to send invitation email', {
+            email: data.email,
+            error,
+          })
+        }
+      },
       // allowUserToCreateOrganization: async (user) => {
       //   const dbSubscriptions = await db
       //     .select()

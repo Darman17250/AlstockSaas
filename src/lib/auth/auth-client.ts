@@ -2,6 +2,7 @@ import { emailOTPClient, organizationClient } from 'better-auth/client/plugins'
 import { createAuthClient } from 'better-auth/react'
 
 import { getBaseUrl } from '../utils'
+import { ac, roles } from './permissions'
 
 /**
  * Auth Client
@@ -14,9 +15,14 @@ import { getBaseUrl } from '../utils'
  * @see lib/billing/client.ts for billing configuration
  * @see lib/billing/hooks.ts for billing React hooks
  */
+// Dans le navigateur, on cible toujours l'origine courante : les appels auth
+// restent same-origin quel que soit le port de dev (évite tout CORS). Côté
+// serveur (SSR), on retombe sur l'URL publique configurée.
+const authBaseURL = typeof window !== 'undefined' ? window.location.origin : getBaseUrl()
+
 export const client = createAuthClient({
-  baseURL: getBaseUrl(),
-  plugins: [emailOTPClient(), organizationClient()],
+  baseURL: authBaseURL,
+  plugins: [emailOTPClient(), organizationClient({ ac, roles })],
   fetchOptions: {
     onError(error) {
       console.error('Auth error:', error)

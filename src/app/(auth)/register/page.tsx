@@ -1,6 +1,7 @@
 import { getOAuthProviderStatus } from '../components/oauth-provider-checker'
 import RegisterForm from '../register/register-form'
 import { generateMetadata } from '@/lib/seo'
+import { isEmailVerificationEnabled } from '@/config/feature-flags'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,6 +20,7 @@ export default async function RegisterPage() {
       facebookAvailable={facebookAvailable}
       microsoftAvailable={microsoftAvailable}
       isProduction={isProduction}
+      emailVerificationEnabled={isEmailVerificationEnabled}
     />
   )
 }

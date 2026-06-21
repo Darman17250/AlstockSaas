@@ -52,12 +52,14 @@ export default function RegisterForm({
   facebookAvailable,
   microsoftAvailable,
   isProduction,
+  emailVerificationEnabled,
 }: {
   githubAvailable: boolean
   googleAvailable: boolean
   facebookAvailable: boolean
   microsoftAvailable: boolean
   isProduction: boolean
+  emailVerificationEnabled: boolean
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -175,11 +177,18 @@ export default function RegisterForm({
         return
       }
 
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('verificationEmail', emailValue)
+      // Vérification email activée → étape OTP. Sinon, l'utilisateur est
+      // auto-connecté à l'inscription : on l'envoie directement dans l'app
+      // (le layout (main) le redirigera vers l'onboarding s'il n'a pas d'org).
+      if (emailVerificationEnabled) {
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('verificationEmail', emailValue)
+        }
+        router.push('/verify?fromSignup=true')
+      } else {
+        router.push(callbackUrl)
+        router.refresh()
       }
-
-      router.push('/verify?fromSignup=true')
     } catch (error) {
       console.error('Signup error:', error)
     } finally {

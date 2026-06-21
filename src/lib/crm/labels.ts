@@ -1,0 +1,87 @@
+/** Libellés FR des enums CRM (UI). Constantes pures, importables partout. */
+
+export const CLIENT_TYPE_LABELS: Record<string, string> = {
+  societe: 'Société',
+  particulier: 'Particulier',
+}
+
+export const RELATION_TYPE_LABELS: Record<string, string> = {
+  client: 'Client',
+  prestataire: 'Prestataire',
+}
+
+export const CIVILITY_LABELS: Record<string, string> = {
+  monsieur: 'Monsieur',
+  madame: 'Madame',
+}
+
+export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
+  appel: 'Appel',
+  email: 'Email',
+  reunion: 'Réunion',
+  visite: 'Visite',
+  note: 'Note',
+  tache: 'Tâche',
+}
+
+/** Types d'activité représentant une communication/interaction (hors `tache`). */
+export const COMMUNICATION_TYPES = ['appel', 'email', 'reunion', 'visite', 'note'] as const
+
+/** Statuts d'une tâche (entité `activity`, type `tache`). */
+export const TASK_STATUS_LABELS: Record<string, string> = {
+  a_faire: 'À faire',
+  fait: 'Fait',
+  annule: 'Annulé',
+}
+
+export const DEAL_STATUS_LABELS: Record<string, string> = {
+  en_cours: 'En cours',
+  gagnee: 'Gagnée',
+  perdue: 'Perdue',
+}
+
+export const DEAL_STAGE_LABELS: Record<string, string> = {
+  nouveau: 'Nouveau',
+  qualification: 'Qualification',
+  proposition: 'Proposition',
+  negociation: 'Négociation',
+}
+
+export const DEAL_SOURCE_LABELS: Record<string, string> = {
+  site_web: 'Site web',
+  recommandation: 'Recommandation',
+  appel_entrant: 'Appel entrant',
+  prospection: 'Prospection',
+  salon: 'Salon',
+  autre: 'Autre',
+}
+
+/** Ordre des colonnes du kanban (affaires en cours). */
+export const DEAL_STAGES = ['nouveau', 'qualification', 'proposition', 'negociation'] as const
+
+/** Statuts d'un chantier (entité `site`). */
+export const SITE_STATUS_LABELS: Record<string, string> = {
+  prepa: 'Préparation',
+  en_cours: 'En cours',
+  en_pause: 'En pause',
+  termine: 'Terminé',
+  annule: 'Annulé',
+}
+
+/** Ordre des statuts de chantier (filtre + Select formulaire). */
+export const SITE_STATUSES = ['prepa', 'en_cours', 'en_pause', 'termine', 'annule'] as const
+
+/** Montant d'affaire formaté en euros (ou devise fournie). `null` si absent. */
+export const formatDealAmount = (
+  amount: string | number | null | undefined,
+  currency = 'EUR'
+): string | null => {
+  if (amount === null || amount === undefined || amount === '') return null
+  const value = typeof amount === 'string' ? Number(amount) : amount
+  if (Number.isNaN(value)) return null
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(value)
+}

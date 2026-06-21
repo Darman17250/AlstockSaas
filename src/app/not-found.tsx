@@ -15,9 +15,9 @@ export default function NotFound() {
         <div className='w-full max-w-[410px]'>
           <div className='flex flex-col items-center justify-center'>
             <div className='space-y-1 text-center'>
-              <h1 className='font-medium text-[32px] text-black tracking-tight'>Page Not Found</h1>
+              <h1 className='font-medium text-[32px] text-black tracking-tight'>Page non trouvée</h1>
               <p className='font-[380] text-[16px] text-muted-foreground'>
-                The page you’re looking for doesn’t exist or has been moved.
+                La page que vous recherchez n’existe pas ou a été supprimée. Veuillez vérifier l’URL et réessayer.
               </p>
             </div>
 
@@ -28,7 +28,7 @@ export default function NotFound() {
                 onClick={() => router.push('/')}
                 className='group inline-flex w-full items-center justify-center gap-2 rounded-[10px] py-[6px] pr-[10px] pl-[12px] text-[15px] font-medium text-white shadow-[inset_0_2px_4px_0_#9B77FF] transition-all'
               >
-                Return to Home
+                Retourner à l’accueil
               </Button>
             </div>
 
@@ -38,7 +38,7 @@ export default function NotFound() {
                 href={`mailto:${brandConfig.supportEmail}`}
                 className='text-(--brand-accent-hex) underline-offset-4 transition hover:text-(--brand-accent-hover-hex) hover:underline'
               >
-                Contact support
+                Contacter le support
               </a>
             </div>
           </div>

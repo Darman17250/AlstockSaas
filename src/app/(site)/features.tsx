@@ -68,7 +68,12 @@ export default function Features() {
       title: 'AI Tools',
       description:
         'Integrating in AI tools like Cursor, Windsurf, Claude Code, and GitHub Copilot for enhanced development.',
-      logos: ['/stack-icons/windsurf.svg', '/stack-icons/cursor.svg', '/stack-icons/claude.svg', '/stack-icons/copilot.svg'],
+      logos: [
+        '/stack-icons/windsurf.svg',
+        '/stack-icons/cursor.svg',
+        '/stack-icons/claude.svg',
+        '/stack-icons/copilot.svg',
+      ],
     },
     {
       title: 'And More',
@@ -78,7 +83,7 @@ export default function Features() {
   ]
 
   return (
-    <section id="features" className='py-24 bg-[#F4F4F5]'>
+    <section id='features' className='py-24 bg-[#F4F4F5]'>
       <div className='mx-auto max-w-6xl px-4 sm:px-6'>
         <h2
           className='text-center text-sm font-medium text-muted-foreground mb-8'
@@ -98,21 +103,15 @@ export default function Features() {
         <div className='border border-[#E4E4E7] rounded-none overflow-hidden bg-transparent'>
           <div className='grid grid-cols-4 grid-rows-3 h-full'>
             {[...features, ...stack].map((item, index) => (
-                <div
-                  key={index}
-                  className={`p-6 bg-transparent flex flex-col ${
+              <div
+                key={index}
+                className={`p-6 bg-transparent flex flex-col ${
                   index % 4 !== 3 ? 'border-r border-[#E4E4E7]' : ''
-                } ${
-                  index < 8 ? 'border-b border-[#E4E4E7]' : ''
-                }`}
+                } ${index < 8 ? 'border-b border-[#E4E4E7]' : ''}`}
               >
                 {item.logo && !item.logos && (
                   <div className='mb-3 flex items-center gap-2'>
-                    <img
-                      src={item.logo}
-                      alt={item.title}
-                      className='h-10 w-10 object-contain'
-                    />
+                    <img src={item.logo} alt={item.title} className='h-10 w-10 object-contain' />
                   </div>
                 )}
                 {item.logos && (
@@ -131,8 +130,8 @@ export default function Features() {
                 )}
                 <h3 className='text-lg font-semibold mb-2'>{item.title}</h3>
                 <p className='text-sm text-muted-foreground'>{item.description}</p>
-                </div>
-              ))}
+              </div>
+            ))}
           </div>
         </div>
       </div>
