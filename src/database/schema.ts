@@ -853,11 +853,35 @@ export const siteRelations = relations(site, ({ one, many }) => ({
   timeEntries: many(timeEntry),
   documents: many(siteDocument),
   team: many(siteMember),
+  messages: many(siteMessage),
 }))
 
 export const siteMemberRelations = relations(siteMember, ({ one }) => ({
   site: one(site, { fields: [siteMember.siteId], references: [site.id] }),
   member: one(member, { fields: [siteMember.memberId], references: [member.id] }),
+}))
+
+export const siteMessageRelations = relations(siteMessage, ({ one, many }) => ({
+  site: one(site, { fields: [siteMessage.siteId], references: [site.id] }),
+  author: one(member, { fields: [siteMessage.authorId], references: [member.id] }),
+  mentions: many(siteMessageMention),
+  attachments: many(siteMessageAttachment),
+}))
+
+export const siteMessageMentionRelations = relations(siteMessageMention, ({ one }) => ({
+  message: one(siteMessage, {
+    fields: [siteMessageMention.messageId],
+    references: [siteMessage.id],
+  }),
+  member: one(member, { fields: [siteMessageMention.memberId], references: [member.id] }),
+  task: one(activity, { fields: [siteMessageMention.taskId], references: [activity.id] }),
+}))
+
+export const siteMessageAttachmentRelations = relations(siteMessageAttachment, ({ one }) => ({
+  message: one(siteMessage, {
+    fields: [siteMessageAttachment.messageId],
+    references: [siteMessage.id],
+  }),
 }))
 
 export const siteDocumentRelations = relations(siteDocument, ({ one }) => ({

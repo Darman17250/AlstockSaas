@@ -146,6 +146,42 @@ Salariés (membres de l'org) affectés à un chantier, en plus du `conducteurId`
 
 Hard-delete (lien). **Unicité `(siteId, memberId)`** (un salarié assigné une seule fois). Index : `organizationId`, `siteId`, `memberId`.
 
+### 5.ter Discussion de chantier (chat)
+
+Fil de discussion collaboratif par chantier (texte, mentions de salariés/tâches, images, messages vocaux). Lecture/écriture = `site:read` (pour que le terrain participe) ; suppression d'un message = auteur ou `site:update`.
+
+**`site_message`** — message du fil.
+
+| Champ | Type | Notes |
+|---|---|---|
+| siteId | fk → site, not null (onDelete **cascade**) | Chantier |
+| authorId | fk → member, null (onDelete set null) | Auteur (conservé si l'auteur quitte l'org) |
+| body | text, null | Texte (peut être vide si pièce jointe seule) |
+
+Soft-delete. Index : `organizationId`, `siteId`, `createdAt`.
+
+**`site_message_mention`** — tag dans un message (exactement un des deux renseigné).
+
+| Champ | Type | Notes |
+|---|---|---|
+| messageId | fk → site_message, not null (**cascade**) | |
+| memberId | fk → member, null (**cascade**) | Mention `@salarié` |
+| taskId | fk → activity, null (**cascade**) | Mention `#tâche` |
+
+Hard-delete (cascade du message). Index : `organizationId`, `messageId`, `memberId`, `taskId`.
+
+**`site_message_attachment`** — pièce jointe (image ou vocal).
+
+| Champ | Type | Notes |
+|---|---|---|
+| messageId | fk → site_message, not null (**cascade**) | |
+| kind | enum `message_attachment_kind` | `image` \| `audio` |
+| storagePath | text, not null | Supabase Storage (URL signée à la lecture) |
+| fileName, mimeType, size | | |
+| durationMs | int, null | Durée d'un vocal |
+
+Hard-delete (cascade du message). Index : `organizationId`, `messageId`. Enum ajouté : `message_attachment_kind` (image, audio).
+
 ### 6. `site_report` — Rapport de chantier journalier
 
 **Un seul rapport par (chantier, jour)** — contrainte d'unicité `(siteId, reportDate)`.

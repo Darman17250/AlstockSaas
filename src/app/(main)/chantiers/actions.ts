@@ -12,6 +12,7 @@ import {
 import { StorageNotConfiguredError } from '@/lib/supabase-storage'
 import { deleteSiteDocument } from '@/services/crm/site-document'
 import { assignSiteMember, removeSiteMember } from '@/services/crm/site-member'
+import { deleteSiteMessage } from '@/services/crm/site-message'
 import { createSite, softDeleteSite, updateSite } from '@/services/crm/site'
 import { siteCreateSchema, siteUpdateSchema } from '@/validation/site'
 
@@ -110,6 +111,16 @@ export const removeSiteMemberAction = async (
     const ctx = await requireOrgContext()
     await removeSiteMember(ctx, siteId, memberId)
     revalidatePath(`/chantiers/${siteId}`)
+    return { ok: true, data: undefined }
+  } catch (e) {
+    return { ok: false, error: toError(e) }
+  }
+}
+
+export const deleteSiteMessageAction = async (messageId: string): Promise<ActionResult> => {
+  try {
+    const ctx = await requireOrgContext()
+    await deleteSiteMessage(ctx, messageId)
     return { ok: true, data: undefined }
   } catch (e) {
     return { ok: false, error: toError(e) }
