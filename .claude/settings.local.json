@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git restore *)",
+      "Bash(curl -s -o /dev/null -w '  %{http_code}\\\\n' -X POST http://localhost:3001/api/equipements/__TRACKED_VAR__/documents)",
+      "Bash(curl -s -o /dev/null -w '  %{http_code}\\\\n' --max-redirs 0 http://localhost:3001/api/equipements/documents/__TRACKED_VAR__)",
+      "Read(//private/tmp/**)",
+      "Bash(bun run *)",
+      "Bash(git add *)"
+    ]
+  }
+}

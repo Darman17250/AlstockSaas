@@ -60,9 +60,7 @@ export default async function ChantiersPage({ searchParams }: ChantiersPageProps
           <EmptyMedia variant='icon'>
             <HardHat />
           </EmptyMedia>
-          <EmptyTitle>
-            {hasFilters ? 'Aucun résultat' : 'Aucun chantier pour le moment'}
-          </EmptyTitle>
+          <EmptyTitle>{hasFilters ? 'Aucun résultat' : 'Aucun chantier pour le moment'}</EmptyTitle>
           <EmptyDescription>
             {hasFilters
               ? 'Aucun chantier ne correspond à votre recherche.'

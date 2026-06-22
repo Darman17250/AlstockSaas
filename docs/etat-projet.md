@@ -2,7 +2,7 @@
 
 > **But de ce document** : permettre à une nouvelle session Claude de reprendre le développement **sans re-explorer le repo**. À lire en premier, avec `CLAUDE.md` et `docs/cadrage-crm-chantiers-mvp.md`. À tenir à jour à la fin de chaque feature.
 
-Dernière mise à jour : fin **Activités & tâches** (page /taches onglets Mes tâches/Équipe/Calendrier, filtre par salarié, sections Tâches sur fiches affaire & client). Prochaine étape : **Chantiers** (cf. §10).
+Dernière mise à jour : fin **Parc d'équipements** (Client → Localisation → Équipement → Entretiens, QR imprimable, documents/photos par équipement). Voir §11. ⚠️ La feature **Chantiers** semble en cours **hors de cette session** (services/validation `site` présents, page `/chantiers` avec des imports manquants `_components/sites-*`) — à finir/vérifier côté chantiers.
 
 ---
 
@@ -19,7 +19,8 @@ Dernière mise à jour : fin **Activités & tâches** (page /taches onglets Mes 
 | ↳ Extension : section « Affaires » sur la fiche client | ✅ terminée |
 | **Activités & tâches** (page /taches + calendrier + sections fiches) | ✅ **terminée & validée** (voir §8) |
 | ↳ Communications sur fiche client (faite hors session) | ✅ présente (audit léger conseillé, voir §8) |
-| **Chantiers** (prochaine feature MVP) | ⏳ à faire — prompt prêt en §10 |
+| **Parc d'équipements** (localisations · équipements · entretiens · QR · documents/photos) | ✅ **terminée & validée** (voir §11) |
+| **Chantiers** | 🚧 en cours **hors session** (imports `sites-*` manquants — voir note en tête + §10) |
 | Rapports · Pointage · Dashboards | ⏳ à faire |
 
 > ⚠️ Numérotation des features **non fiable** dans le repo : certains commentaires de F2 parlent de « conversion F5 » pour les chantiers. Se référer à l'**ordre nommé** de `CLAUDE.md §10` (Affaires → **Activités & tâches** → Chantiers → Rapports → Pointage → Dashboards), pas aux numéros.
@@ -228,3 +229,34 @@ Feature suivante (CLAUDE.md §10, après Activités & tâches). Entité **`site`
 
 ### Infos à demander à l'utilisateur quand utile
 - Nom de **branding** (remplace « ShipFree » dans `src/config/branding.ts` ; le cookie auth pointe encore `.shipfree.app` dans `auth.ts`).
+
+---
+
+## 11. Parc d'équipements (field-service / GMAO) — livré
+
+Extension CRM validée : `Client → Localisation → Équipement installé → Entretiens`, étiquette **QR** par équipement, **documents/photos** par équipement. Concerne le parc **installé chez le client** (chaudière, poêle à bois, PAC, VMC…), **pas** l'outillage/stock. Modèle détaillé : `docs/cadrage-crm-chantiers-mvp.md` → « Extension v1.1 ».
+
+**Schéma & migrations** — tables `client_location`, `equipment`, `equipment_maintenance`, `equipment_document` + enums `location_type`/`equipment_status`/`maintenance_type` + colonne `activity.equipmentId` (rappels). Migrations **0007** (parc) et **0008** (documents) **appliquées**. `equipment.clientId` est **dénormalisé** depuis la localisation (fixé côté service). Soft-delete partout sauf `equipment_document` (hard-delete + suppression objet bucket).
+
+**Permissions** (`permissions.ts`) — `location` & `equipment` : admin/commercial complet · conducteur/terrain lecture. `maintenance` : admin/conducteur complet · terrain create/read/update · commercial lecture.
+
+**Validation** `src/validation/` — `location.ts`, `equipment.ts`, `maintenance.ts`. Documents : réutilisent les constantes génériques de `validation/deal-document.ts`.
+
+**Services** `src/services/crm/` — `location.ts` (softDelete cascade applicatif des équipements), `equipment.ts` (clientId dérivé de la localisation ; supporte le déplacement), `maintenance.ts` (recalcule `equipment.nextMaintenanceDate` via `nextDueDate` ou fréquence ; total des coûts), `equipment-document.ts` (upload/list/download/delete, perms `equipment`). Filtre `organizationId` partout.
+
+**Façade** `src/app/(main)/equipements/actions.ts` — CRUD localisation/équipement/entretien + `createMaintenanceReminderTaskAction` (tâche de rappel liée client+équipement) + `deleteEquipmentDocumentAction`. Route Handlers `POST /api/equipements/[id]/documents` + `GET /api/equipements/documents/[docId]` (mêmes patterns que les documents d'affaire).
+
+**UI**
+- **Fiche client** → section **« Localisations & équipements »** (`clients/[id]/_components/locations-section.tsx` + `location-form-dialog.tsx`) : localisations + leurs équipements (badge « en retard »), liens vers `/equipements/[id]`.
+- **Page équipement** `/equipements/[id]` (cible QR, login requis) : infos, prochain entretien + badge retard + **« Créer une tâche de rappel »**, **historique d'entretien** (CRUD), **Documents & photos** (vignettes pour les images), actions Modifier / Étiquette QR / Supprimer. Composants dans `equipements/[id]/_components/` + dialogues partagés dans `equipements/_components/` (`equipment-form-dialog`, `maintenance-form-dialog`).
+- **Étiquette** `/equipements/[id]/etiquette` : QR (SVG généré côté serveur via lib **`qrcode`**) + nom/client/localisation/n° série, bouton Imprimer (CSS print isolant `#print-label`). URL du QR construite depuis les headers de la requête.
+- Libellés `LOCATION_TYPE_LABELS`/`EQUIPMENT_STATUS_LABELS`/`MAINTENANCE_TYPE_LABELS` + `EQUIPMENT_CATEGORY_SUGGESTIONS` + `formatCost` dans `src/lib/crm/labels.ts`.
+- `proxy.ts` : `/equipements/:path*` ajouté au matcher (garde de session).
+
+**⚠️ Pièges**
+- Le QR encode `/equipements/[id]` (page **interne**) → en dev l'URL pointe sur `localhost:3001` (non scannable depuis un mobile) ; OK en prod.
+- `equipment.clientId` doit rester cohérent avec la localisation : toujours le dériver via `assertLocationInOrg` (fait dans le service).
+- Dépendances ajoutées : `qrcode` + `@types/qrcode`.
+
+### Suggestions non faites (proposées, en attente)
+Impression d'étiquettes **par lot** (toutes les machines d'une localisation), **vue publique QR** par token (sans login), lien **entretien ↔ chantier**.

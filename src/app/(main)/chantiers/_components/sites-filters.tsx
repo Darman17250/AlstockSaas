@@ -37,8 +37,7 @@ export const SitesFilters = ({ clients }: SitesFiltersProps) => {
   const [search, setSearch] = useState(searchParams.get('search') ?? '')
 
   const clientItems: ClientItem[] = clients.map((c) => ({ value: c.id, label: c.name }))
-  const selectedClient =
-    clientItems.find((i) => i.value === searchParams.get('clientId')) ?? null
+  const selectedClient = clientItems.find((i) => i.value === searchParams.get('clientId')) ?? null
 
   const pushParam = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString())

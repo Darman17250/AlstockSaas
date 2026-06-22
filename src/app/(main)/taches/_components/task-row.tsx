@@ -33,6 +33,7 @@ export interface TaskView {
   dealTitle: string | null
   siteId: string | null
   siteName: string | null
+  coAssignees: { id: string; name: string }[]
 }
 
 interface TaskRowProps {
@@ -85,11 +86,12 @@ export const TaskRow = ({ task, canEdit, onEdit, showAssignee }: TaskRowProps) =
         aria-label={done ? 'Marquer à faire' : 'Marquer fait'}
       />
       <div className='min-w-0 flex-1'>
-        <p
-          className={`text-sm font-medium ${done || cancelled ? 'text-muted-foreground line-through' : ''}`}
+        <Link
+          href={`/taches/${task.id}`}
+          className={`text-sm font-medium hover:underline ${done || cancelled ? 'text-muted-foreground line-through' : ''}`}
         >
           {task.subject}
-        </p>
+        </Link>
         <div className='mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground'>
           {task.dueDate && (
             <span className={overdue ? 'font-medium text-destructive-foreground' : ''}>
@@ -98,9 +100,14 @@ export const TaskRow = ({ task, canEdit, onEdit, showAssignee }: TaskRowProps) =
             </span>
           )}
           {cancelled && <span>Annulé</span>}
-          {showAssignee && task.assigneeName && (
+          {showAssignee && (task.assigneeName || task.coAssignees.length > 0) && (
             <span className='inline-flex items-center gap-1'>
-              <User className='size-3' /> {task.assigneeName}
+              <User className='size-3' /> {task.assigneeName ?? task.coAssignees[0]?.name}
+              {task.coAssignees.length > 0 && (
+                <span className='text-muted-foreground'>
+                  +{task.assigneeName ? task.coAssignees.length : task.coAssignees.length - 1}
+                </span>
+              )}
             </span>
           )}
           {task.dealId && task.dealTitle && (

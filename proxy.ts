@@ -29,6 +29,7 @@ export const config = {
     '/affaires/:path*',
     '/chantiers/:path*',
     '/taches/:path*',
+    '/equipements/:path*',
     '/equipe/:path*',
   ],
 }

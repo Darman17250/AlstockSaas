@@ -10,6 +10,7 @@ import {
   requireOrgContext,
 } from '@/lib/auth/org-context'
 import { createTask, deleteTask, setTaskStatus, updateTask } from '@/services/crm/task'
+import { deleteTaskDocument } from '@/services/crm/task-document'
 import { taskCreateSchema, taskStatusSchema, taskUpdateSchema } from '@/validation/task'
 
 /**
@@ -26,11 +27,12 @@ const toError = (e: unknown): string => {
   return 'Une erreur est survenue'
 }
 
-/** Revalide la page tâches + les fiches liées (affaire/client) le cas échéant. */
-const revalidateTaskPaths = (links: { dealId?: string; clientId?: string }) => {
+/** Revalide la page tâches + les fiches liées (affaire/client/chantier) le cas échéant. */
+const revalidateTaskPaths = (links: { dealId?: string; clientId?: string; siteId?: string }) => {
   revalidatePath('/taches')
   if (links.dealId) revalidatePath(`/affaires/${links.dealId}`)
   if (links.clientId) revalidatePath(`/clients/${links.clientId}`)
+  if (links.siteId) revalidatePath(`/chantiers/${links.siteId}`)
 }
 
 export const createTaskAction = async (input: unknown): Promise<ActionResult> => {
@@ -51,6 +53,7 @@ export const updateTaskAction = async (id: string, input: unknown): Promise<Acti
     const data = taskUpdateSchema.parse(input)
     await updateTask(ctx, id, data)
     revalidateTaskPaths(data)
+    revalidatePath(`/taches/${id}`)
     return { ok: true, data: undefined }
   } catch (e) {
     return { ok: false, error: toError(e) }
@@ -74,6 +77,20 @@ export const deleteTaskAction = async (id: string): Promise<ActionResult> => {
     const ctx = await requireOrgContext()
     await deleteTask(ctx, id)
     revalidatePath('/taches')
+    return { ok: true, data: undefined }
+  } catch (e) {
+    return { ok: false, error: toError(e) }
+  }
+}
+
+export const deleteTaskDocumentAction = async (
+  documentId: string,
+  taskId: string
+): Promise<ActionResult> => {
+  try {
+    const ctx = await requireOrgContext()
+    await deleteTaskDocument(ctx, documentId)
+    revalidatePath(`/taches/${taskId}`)
     return { ok: true, data: undefined }
   } catch (e) {
     return { ok: false, error: toError(e) }

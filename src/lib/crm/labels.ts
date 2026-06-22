@@ -71,6 +71,55 @@ export const SITE_STATUS_LABELS: Record<string, string> = {
 /** Ordre des statuts de chantier (filtre + Select formulaire). */
 export const SITE_STATUSES = ['prepa', 'en_cours', 'en_pause', 'termine', 'annule'] as const
 
+/** Types de localisation client (parc d'équipements). */
+export const LOCATION_TYPE_LABELS: Record<string, string> = {
+  maison: 'Maison',
+  appartement: 'Appartement',
+  local_commercial: 'Local commercial',
+  immeuble: 'Immeuble',
+  terrain: 'Terrain',
+  autre: 'Autre',
+}
+
+/** Statuts d'un équipement installé. */
+export const EQUIPMENT_STATUS_LABELS: Record<string, string> = {
+  en_service: 'En service',
+  en_panne: 'En panne',
+  hors_service: 'Hors service',
+  a_remplacer: 'À remplacer',
+}
+
+/** Types d'intervention d'entretien. */
+export const MAINTENANCE_TYPE_LABELS: Record<string, string> = {
+  entretien: 'Entretien',
+  reparation: 'Réparation',
+  installation: 'Installation',
+  controle: 'Contrôle',
+}
+
+/** Suggestions courantes de catégories d'équipement (datalist, champ libre). */
+export const EQUIPMENT_CATEGORY_SUGGESTIONS = [
+  'Chaudière',
+  'Poêle à bois',
+  'Pompe à chaleur',
+  'Climatisation',
+  'VMC',
+  'Chauffe-eau',
+  'Adoucisseur',
+  'Ballon thermodynamique',
+  'Radiateur',
+  'Portail',
+  'Alarme',
+] as const
+
+/** Montant (coût) formaté en euros. `null` si absent/invalide. */
+export const formatCost = (amount: string | number | null | undefined): string | null => {
+  if (amount === null || amount === undefined || amount === '') return null
+  const value = typeof amount === 'string' ? Number(amount) : amount
+  if (Number.isNaN(value)) return null
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value)
+}
+
 /** Montant d'affaire formaté en euros (ou devise fournie). `null` si absent. */
 export const formatDealAmount = (
   amount: string | number | null | undefined,

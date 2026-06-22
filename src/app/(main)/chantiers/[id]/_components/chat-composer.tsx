@@ -90,7 +90,7 @@ export const ChatComposer = ({ siteId, members, tasks, onSent }: ChatComposerPro
       recorderRef.current = rec
       setRecording(true)
     } catch {
-      setError("Micro indisponible ou refusé.")
+      setError('Micro indisponible ou refusé.')
     }
   }
 
@@ -142,9 +142,12 @@ export const ChatComposer = ({ siteId, members, tasks, onSent }: ChatComposerPro
       for (const img of images) fd.append('files', img)
       if (audio) {
         const ext = audio.blob.type.includes('mp4') ? 'm4a' : 'webm'
-        fd.append('files', new File([audio.blob], `vocal-${Date.now()}.${ext}`, {
-          type: audio.blob.type,
-        }))
+        fd.append(
+          'files',
+          new File([audio.blob], `vocal-${Date.now()}.${ext}`, {
+            type: audio.blob.type,
+          })
+        )
         fd.append('durationMs', String(audio.durationMs))
       }
       const res = await fetch(`/api/chantiers/${siteId}/messages`, { method: 'POST', body: fd })

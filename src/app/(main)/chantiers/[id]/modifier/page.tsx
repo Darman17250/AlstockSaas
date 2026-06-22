@@ -48,7 +48,12 @@ export default async function ModifierChantierPage({ params }: ModifierChantierP
 
   return (
     <div className='mx-auto max-w-3xl px-4 py-8'>
-      <Button variant='ghost' size='sm' className='mb-4' render={<Link href={`/chantiers/${id}`} />}>
+      <Button
+        variant='ghost'
+        size='sm'
+        className='mb-4'
+        render={<Link href={`/chantiers/${id}`} />}
+      >
         <ChevronLeft className='size-4' /> Chantier
       </Button>
       <h1 className='mb-6 text-2xl font-bold tracking-tight'>Modifier le chantier</h1>

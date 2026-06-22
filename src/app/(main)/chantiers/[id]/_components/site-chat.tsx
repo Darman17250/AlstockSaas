@@ -6,11 +6,7 @@ import { AtSign, Hash, MessagesSquare, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { deleteSiteMessageAction } from '../../actions'
-import {
-  ChatComposer,
-  type MentionMember,
-  type MentionTask,
-} from './chat-composer'
+import { ChatComposer, type MentionMember, type MentionTask } from './chat-composer'
 
 export interface ChatMentionView {
   type: 'member' | 'task'
@@ -67,7 +63,6 @@ export const SiteChat = ({
     if (el) el.scrollTop = el.scrollHeight
   }
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: défilement à chaque nouveau message
   useEffect(() => {
     scrollToBottom()
   }, [messages.length])
@@ -147,7 +142,6 @@ export const SiteChat = ({
                   <div className='mt-2 space-y-2'>
                     {m.attachments.map((a) =>
                       a.kind === 'image' ? (
-                        // biome-ignore lint/performance/noImgElement: image privée servie via URL signée (pas d'optimisation Next)
                         <img
                           key={a.id}
                           src={`/api/chantiers/messages/attachments/${a.id}`}

@@ -113,6 +113,10 @@ Modèle unifié : un log d'interaction OU une tâche (selon `type`/`dueDate`).
 
 Hard-delete. Index : `organizationId`, `assigneeId`, `dueDate`, `status`.
 
+**Extensions tâches** (sur les `activity` de type `tache`) :
+- `task_assignee` — **co-assignés** d'une tâche (n–n `activity ↔ member`), en plus de `assigneeId` (le responsable). Champs : `taskId` (cascade), `memberId` (cascade). Hard-delete, unicité `(taskId, memberId)`, index `organizationId`/`taskId`/`memberId`. « Mes tâches » = responsable **ou** co-assigné.
+- `task_document` — pièces jointes d'une tâche (images **et** documents). Champs : `taskId` (cascade), `storagePath`, `fileName`, `mimeType`, `size`, `uploadedById` (set null). Hard-delete, index `organizationId`/`taskId`. Lecture `activity:read`, ajout/suppression `activity:update`.
+
 ### 5. `site` — Chantier
 
 | Champ | Type | Notes |
@@ -248,6 +252,68 @@ Hard-delete. Index : `organizationId`, `(siteId, workDate)`, `(memberId, workDat
 | `commercial` | complet | lecture | lecture |
 | `conducteur` | lecture | complet | complet |
 | `terrain` | lecture limitée | lecture (chantiers assignés) | écriture sur chantiers assignés |
+
+---
+
+## Extension v1.1 — Parc d'équipements (field-service / GMAO)
+
+> Ajout validé après le MVP initial. Chaîne : `Client → Localisation → Équipement installé → Entretiens`. Concerne le **parc installé à demeure chez le client** (chaudière, poêle à bois, PAC, climatisation, VMC, chauffe-eau…), **PAS** l'outillage de l'entreprise ni les consommables (le « stock/matériel » reste hors périmètre).
+
+### `client_location` — Localisation d'un client
+| Champ | Type | Notes |
+|---|---|---|
+| clientId | fk → client, not null (cascade) | Client propriétaire |
+| type | enum `location_type` | `maison · appartement · local_commercial · immeuble · terrain · autre` |
+| name | text, not null | Ex. « Maison principale » |
+| addressLine1/2, postalCode, city, country | text | Adresse de la localisation |
+| notes | text | |
+
+Soft-delete (avec soft-delete en cascade applicatif de ses équipements). Index : `organizationId`, `clientId`.
+
+### `equipment` — Équipement installé
+| Champ | Type | Notes |
+|---|---|---|
+| locationId | fk → client_location, not null (cascade) | Localisation |
+| clientId | fk → client, not null (cascade) | Dénormalisé depuis la localisation |
+| name | text, not null | |
+| category | text | Champ libre (Chaudière, Poêle à bois…) |
+| brand, model, serialNumber | text | |
+| installDate | date | |
+| status | enum `equipment_status` | `en_service · en_panne · hors_service · a_remplacer` |
+| maintenanceFrequencyMonths | int | Fréquence d'entretien |
+| nextMaintenanceDate | date | Prochaine échéance (maj à chaque entretien) |
+| notes | text | |
+
+Soft-delete. Index : `organizationId`, `locationId`, `clientId`. La page interne `/equipements/[id]` est la cible du **QR** imprimable.
+
+### `equipment_maintenance` — Entretien (historique)
+| Champ | Type | Notes |
+|---|---|---|
+| equipmentId | fk → equipment, not null (cascade) | |
+| type | enum `maintenance_type` | `entretien · reparation · installation · controle` |
+| performedAt | date, not null | |
+| performedById | fk → member, null (set null) | Qui a fait l'entretien (membre de l'équipe) |
+| cost | decimal(10,2), null | Coût |
+| description | text | |
+| nextDueDate | date, null | Prochaine échéance proposée |
+
+Soft-delete. Index : `organizationId`, `equipmentId`.
+
+### `equipment_document` — Document/photo d'un équipement
+| Champ | Type | Notes |
+|---|---|---|
+| equipmentId | fk → equipment, not null (cascade) | |
+| storagePath | text, not null | Supabase Storage (bucket privé `affaire-documents`, préfixe `…/equipment/…`) |
+| fileName, mimeType, size | text/int | Métadonnées |
+| uploadedById | fk → member, null (set null) | |
+
+Hard-delete (ligne + objet bucket supprimés ensemble). Index : `organizationId`, `equipmentId`. Images/PDF/Office (≤ 20 Mo). Perms : lecture `equipment:read`, ajout/suppression `equipment:update`.
+
+### Liens & décisions
+- `activity.equipmentId` (fk null, set null) ajouté → une **tâche** peut être un rappel d'entretien rattaché à un équipement (réutilise Activités & tâches).
+- Enums : `location_type`, `equipment_status`, `maintenance_type`.
+- Permissions : `location` & `equipment` (admin/commercial complet · conducteur/terrain lecture) ; `maintenance` (admin/conducteur complet · terrain create/read/update · commercial lecture).
+- QR = page **interne** (login requis) ; URL construite depuis les headers de la requête. Aucune table « stock ».
 
 ---
 

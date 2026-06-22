@@ -17,7 +17,9 @@ const globalForDb = globalThis as unknown as {
   __queryClient?: ReturnType<typeof postgres>
 }
 
-const queryClient = globalForDb.__queryClient ?? postgres(databaseUrl)
+// `prepare: false` est requis pour le Transaction Pooler Supabase (port 6543),
+// mode recommandé en serverless (Vercel). Sans effet en connexion directe.
+const queryClient = globalForDb.__queryClient ?? postgres(databaseUrl, { prepare: false })
 
 if (process.env.NODE_ENV !== 'production') {
   globalForDb.__queryClient = queryClient

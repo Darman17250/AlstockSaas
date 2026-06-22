@@ -28,6 +28,7 @@ import { TasksSection } from '../../taches/_components/tasks-section'
 import { DocumentsSection } from './_components/documents-section'
 import { SiteActions } from './_components/site-actions'
 import { SiteChat } from './_components/site-chat'
+import { SiteStats } from './_components/site-stats'
 import { SiteTeamSection } from './_components/site-team-section'
 
 const taskToView = (t: TaskItem) => ({
@@ -122,6 +123,14 @@ export default async function SitePage({ params }: SitePageProps) {
       </div>
 
       <div className='space-y-6'>
+        <SiteStats
+          tasksTotal={tasks.length}
+          tasksDone={tasks.filter((t) => t.status === 'fait').length}
+          messagesCount={messages.length}
+          documentsCount={documents.length}
+          teamCount={team.length}
+        />
+
         <section className='grid gap-3 rounded-lg border p-5 sm:grid-cols-2'>
           <Line icon={Building2}>
             <Link href={`/clients/${data.clientId}`} className='hover:underline'>
@@ -137,7 +146,8 @@ export default async function SitePage({ params }: SitePageProps) {
           )}
           {(data.actualStartDate || data.actualEndDate) && (
             <Line icon={CalendarCheck}>
-              Réel : {dateLabel(data.actualStartDate) ?? '—'} → {dateLabel(data.actualEndDate) ?? '—'}
+              Réel : {dateLabel(data.actualStartDate) ?? '—'} →{' '}
+              {dateLabel(data.actualEndDate) ?? '—'}
             </Line>
           )}
           {data.dealId && (
@@ -157,6 +167,14 @@ export default async function SitePage({ params }: SitePageProps) {
         )}
 
         <SiteTeamSection siteId={data.id} team={team} members={teamMembers} canEdit={canEdit} />
+
+        <SiteChat
+          siteId={data.id}
+          initialMessages={chatMessages}
+          members={chatMembers}
+          tasks={chatTasks}
+          canManageAll={canEdit}
+        />
 
         {canReadTasks && (
           <TasksSection

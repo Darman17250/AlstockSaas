@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
+import { Loader2, X } from 'lucide-react'
 
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Combobox,
@@ -77,6 +78,9 @@ export const TaskFormDialog = ({
   const router = useRouter()
   const [status, setStatus] = useState<string>(task?.status ?? 'a_faire')
   const [assigneeId, setAssigneeId] = useState<string>(task?.assigneeId ?? currentMemberId ?? NONE)
+  const [coAssignees, setCoAssignees] = useState<{ id: string; name: string }[]>(
+    task?.coAssignees ?? []
+  )
   const [clientId, setClientId] = useState<string | null>(task?.clientId ?? null)
   const [dealId, setDealId] = useState<string | null>(task?.dealId ?? null)
   const [siteId, setSiteId] = useState<string>(task?.siteId ?? NONE)
@@ -89,6 +93,7 @@ export const TaskFormDialog = ({
     if (!open) return
     setStatus(task?.status ?? 'a_faire')
     setAssigneeId(task?.assigneeId ?? currentMemberId ?? NONE)
+    setCoAssignees(task?.coAssignees ?? [])
     setClientId(task?.clientId ?? null)
     setDealId(task?.dealId ?? null)
     setSiteId(task?.siteId ?? NONE)
@@ -115,6 +120,7 @@ export const TaskFormDialog = ({
       dueDate: String(fd.get('dueDate') ?? ''),
       status,
       assigneeId: assigneeId !== NONE ? assigneeId : undefined,
+      coAssigneeIds: coAssignees.map((c) => c.id),
       clientId: locked?.clientId ?? clientId ?? undefined,
       dealId: locked?.dealId ?? dealId ?? undefined,
       siteId: locked?.siteId ?? (siteId !== NONE ? siteId : undefined),
@@ -202,6 +208,57 @@ export const TaskFormDialog = ({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className='space-y-2'>
+              <Label>Co-assignés</Label>
+              <Select
+                value={NONE}
+                onValueChange={(v) => {
+                  if (!v || v === NONE) return
+                  const m = members.find((x) => x.id === v)
+                  if (m && !coAssignees.some((c) => c.id === v)) {
+                    setCoAssignees((prev) => [...prev, { id: m.id, name: m.name }])
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue>{() => 'Ajouter un co-assigné…'}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {members.filter(
+                    (m) => m.id !== assigneeId && !coAssignees.some((c) => c.id === m.id)
+                  ).length === 0 ? (
+                    <SelectItem value={NONE} disabled>
+                      Aucun
+                    </SelectItem>
+                  ) : (
+                    members
+                      .filter((m) => m.id !== assigneeId && !coAssignees.some((c) => c.id === m.id))
+                      .map((m) => (
+                        <SelectItem key={m.id} value={m.id}>
+                          {m.name}
+                        </SelectItem>
+                      ))
+                  )}
+                </SelectContent>
+              </Select>
+              {coAssignees.length > 0 && (
+                <div className='flex flex-wrap gap-1.5'>
+                  {coAssignees.map((c) => (
+                    <Badge key={c.id} variant='secondary' size='sm'>
+                      {c.name}
+                      <button
+                        type='button'
+                        aria-label={`Retirer ${c.name}`}
+                        onClick={() => setCoAssignees((prev) => prev.filter((x) => x.id !== c.id))}
+                      >
+                        <X className='size-3' />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
 
             {showClient && (

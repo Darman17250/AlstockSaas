@@ -10,6 +10,8 @@ import { CIVILITY_LABELS, CLIENT_TYPE_LABELS, RELATION_TYPE_LABELS } from '@/lib
 import { listClientCommunications } from '@/services/crm/activity'
 import { getClient } from '@/services/crm/client'
 import { listDealsForClient } from '@/services/crm/deal'
+import { listEquipmentsForClient } from '@/services/crm/equipment'
+import { listLocationsForClient } from '@/services/crm/location'
 import { listTasksForClient, type TaskItem } from '@/services/crm/task'
 import { listOrgMembers } from '@/services/org/members'
 import { TasksSection } from '../../taches/_components/tasks-section'
@@ -17,6 +19,7 @@ import { ClientActions } from './_components/client-actions'
 import { CommunicationsSection } from './_components/communications-section'
 import { ContactsSection } from './_components/contacts-section'
 import { DealsSection } from './_components/deals-section'
+import { LocationsSection } from './_components/locations-section'
 
 const taskToView = (t: TaskItem) => ({
   ...t,
@@ -58,6 +61,12 @@ export default async function ClientPage({ params }: ClientPageProps) {
   const communications = canReadComms ? await listClientCommunications(ctx, id) : []
   const members = canEditComms ? await listOrgMembers(ctx) : []
   const tasks = canReadComms ? await listTasksForClient(ctx, id) : []
+
+  const canReadEquipment = can(ctx.role, 'equipment', 'read')
+  const canManageLocations = can(ctx.role, 'location', 'create')
+  const canManageEquipment = can(ctx.role, 'equipment', 'create')
+  const locations = canReadEquipment ? await listLocationsForClient(ctx, id) : []
+  const equipments = canReadEquipment ? await listEquipmentsForClient(ctx, id) : []
 
   const addressParts = [
     data.addressLine1,
@@ -199,6 +208,17 @@ export default async function ClientPage({ params }: ClientPageProps) {
             currentMemberId={ctx.memberId}
             members={members}
             locked={{ clientId: data.id }}
+          />
+        )}
+
+        {/* Localisations & équipements */}
+        {canReadEquipment && (
+          <LocationsSection
+            clientId={data.id}
+            locations={locations}
+            equipments={equipments}
+            canManageLocations={canManageLocations}
+            canManageEquipment={canManageEquipment}
           />
         )}
 

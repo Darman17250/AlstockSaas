@@ -355,6 +355,28 @@ export const weatherEnum = pgEnum('weather', [
 ])
 export const timeEntryTypeEnum = pgEnum('time_entry_type', ['travail', 'absence'])
 
+// Parc d'équipements installés chez le client (field-service / GMAO).
+export const locationTypeEnum = pgEnum('location_type', [
+  'maison',
+  'appartement',
+  'local_commercial',
+  'immeuble',
+  'terrain',
+  'autre',
+])
+export const equipmentStatusEnum = pgEnum('equipment_status', [
+  'en_service',
+  'en_panne',
+  'hors_service',
+  'a_remplacer',
+])
+export const maintenanceTypeEnum = pgEnum('maintenance_type', [
+  'entretien',
+  'reparation',
+  'installation',
+  'controle',
+])
+
 // ============================================================================
 // Tables métier — toutes portent organizationId (non null, indexé) pour le
 // cloisonnement multi-tenant. Soft-delete (deletedAt) sur les entités à valeur.
@@ -423,6 +445,137 @@ export const contact = pgTable(
   (table) => [
     index('contact_organizationId_idx').on(table.organizationId),
     index('contact_clientId_idx').on(table.clientId),
+  ]
+)
+
+// ============================================================================
+// Parc d'équipements : Client → Localisation → Équipement → Entretien.
+// Équipements installés à demeure (chaudière, poêle, PAC, VMC…), pas l'outillage.
+// ============================================================================
+
+export const clientLocation = pgTable(
+  'client_location',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    clientId: uuid('client_id')
+      .notNull()
+      .references(() => client.id, { onDelete: 'cascade' }),
+    type: locationTypeEnum('type').notNull(),
+    name: text('name').notNull(),
+    addressLine1: text('address_line1'),
+    addressLine2: text('address_line2'),
+    postalCode: text('postal_code'),
+    city: text('city'),
+    country: text('country').default('FR').notNull(),
+    notes: text('notes'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => [
+    index('client_location_organizationId_idx').on(table.organizationId),
+    index('client_location_clientId_idx').on(table.clientId),
+  ]
+)
+
+export const equipment = pgTable(
+  'equipment',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    locationId: uuid('location_id')
+      .notNull()
+      .references(() => clientLocation.id, { onDelete: 'cascade' }),
+    // Dénormalisé depuis la localisation : simplifie le cloisonnement et les
+    // listes par client. Maintenu en phase avec `locationId` à l'écriture.
+    clientId: uuid('client_id')
+      .notNull()
+      .references(() => client.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    category: text('category'),
+    brand: text('brand'),
+    model: text('model'),
+    serialNumber: text('serial_number'),
+    installDate: date('install_date'),
+    status: equipmentStatusEnum('status').default('en_service').notNull(),
+    maintenanceFrequencyMonths: integer('maintenance_frequency_months'),
+    nextMaintenanceDate: date('next_maintenance_date'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => [
+    index('equipment_organizationId_idx').on(table.organizationId),
+    index('equipment_locationId_idx').on(table.locationId),
+    index('equipment_clientId_idx').on(table.clientId),
+  ]
+)
+
+export const equipmentMaintenance = pgTable(
+  'equipment_maintenance',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    equipmentId: uuid('equipment_id')
+      .notNull()
+      .references(() => equipment.id, { onDelete: 'cascade' }),
+    type: maintenanceTypeEnum('type').default('entretien').notNull(),
+    performedAt: date('performed_at').notNull(),
+    performedById: text('performed_by_id').references(() => member.id, { onDelete: 'set null' }),
+    cost: decimal('cost', { precision: 10, scale: 2 }),
+    description: text('description'),
+    nextDueDate: date('next_due_date'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => [
+    index('equipment_maintenance_organizationId_idx').on(table.organizationId),
+    index('equipment_maintenance_equipmentId_idx').on(table.equipmentId),
+  ]
+)
+
+export const equipmentDocument = pgTable(
+  'equipment_document',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    equipmentId: uuid('equipment_id')
+      .notNull()
+      .references(() => equipment.id, { onDelete: 'cascade' }),
+    storagePath: text('storage_path').notNull(),
+    fileName: text('file_name').notNull(),
+    mimeType: text('mime_type'),
+    size: integer('size'),
+    uploadedById: text('uploaded_by_id').references(() => member.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('equipment_document_organizationId_idx').on(table.organizationId),
+    index('equipment_document_equipmentId_idx').on(table.equipmentId),
   ]
 )
 
@@ -677,6 +830,7 @@ export const activity = pgTable(
     contactId: uuid('contact_id').references(() => contact.id, { onDelete: 'set null' }),
     dealId: uuid('deal_id').references(() => deal.id, { onDelete: 'set null' }),
     siteId: uuid('site_id').references(() => site.id, { onDelete: 'set null' }),
+    equipmentId: uuid('equipment_id').references(() => equipment.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
@@ -688,6 +842,58 @@ export const activity = pgTable(
     index('activity_assigneeId_idx').on(table.assigneeId),
     index('activity_dueDate_idx').on(table.dueDate),
     index('activity_status_idx').on(table.status),
+    index('activity_equipmentId_idx').on(table.equipmentId),
+  ]
+)
+
+export const taskAssignee = pgTable(
+  'task_assignee',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    taskId: uuid('task_id')
+      .notNull()
+      .references(() => activity.id, { onDelete: 'cascade' }),
+    memberId: text('member_id')
+      .notNull()
+      .references(() => member.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('task_assignee_organizationId_idx').on(table.organizationId),
+    index('task_assignee_taskId_idx').on(table.taskId),
+    index('task_assignee_memberId_idx').on(table.memberId),
+    // Un co-assigné n'est ajouté qu'une fois à une tâche donnée.
+    uniqueIndex('task_assignee_task_member_unique').on(table.taskId, table.memberId),
+  ]
+)
+
+export const taskDocument = pgTable(
+  'task_document',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    taskId: uuid('task_id')
+      .notNull()
+      .references(() => activity.id, { onDelete: 'cascade' }),
+    storagePath: text('storage_path').notNull(),
+    fileName: text('file_name').notNull(),
+    mimeType: text('mime_type'),
+    size: integer('size'),
+    uploadedById: text('uploaded_by_id').references(() => member.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('task_document_organizationId_idx').on(table.organizationId),
+    index('task_document_taskId_idx').on(table.taskId),
   ]
 )
 
@@ -818,6 +1024,48 @@ export const clientRelations = relations(client, ({ one, many }) => ({
   contacts: many(contact),
   deals: many(deal),
   sites: many(site),
+  locations: many(clientLocation),
+}))
+
+export const clientLocationRelations = relations(clientLocation, ({ one, many }) => ({
+  organization: one(organization, {
+    fields: [clientLocation.organizationId],
+    references: [organization.id],
+  }),
+  client: one(client, { fields: [clientLocation.clientId], references: [client.id] }),
+  equipments: many(equipment),
+}))
+
+export const equipmentRelations = relations(equipment, ({ one, many }) => ({
+  location: one(clientLocation, {
+    fields: [equipment.locationId],
+    references: [clientLocation.id],
+  }),
+  client: one(client, { fields: [equipment.clientId], references: [client.id] }),
+  maintenances: many(equipmentMaintenance),
+  documents: many(equipmentDocument),
+}))
+
+export const equipmentMaintenanceRelations = relations(equipmentMaintenance, ({ one }) => ({
+  equipment: one(equipment, {
+    fields: [equipmentMaintenance.equipmentId],
+    references: [equipment.id],
+  }),
+  performedBy: one(member, {
+    fields: [equipmentMaintenance.performedById],
+    references: [member.id],
+  }),
+}))
+
+export const equipmentDocumentRelations = relations(equipmentDocument, ({ one }) => ({
+  equipment: one(equipment, {
+    fields: [equipmentDocument.equipmentId],
+    references: [equipment.id],
+  }),
+  uploadedBy: one(member, {
+    fields: [equipmentDocument.uploadedById],
+    references: [member.id],
+  }),
 }))
 
 export const contactRelations = relations(contact, ({ one }) => ({
@@ -882,6 +1130,16 @@ export const siteMessageAttachmentRelations = relations(siteMessageAttachment, (
     fields: [siteMessageAttachment.messageId],
     references: [siteMessage.id],
   }),
+}))
+
+export const taskAssigneeRelations = relations(taskAssignee, ({ one }) => ({
+  task: one(activity, { fields: [taskAssignee.taskId], references: [activity.id] }),
+  member: one(member, { fields: [taskAssignee.memberId], references: [member.id] }),
+}))
+
+export const taskDocumentRelations = relations(taskDocument, ({ one }) => ({
+  task: one(activity, { fields: [taskDocument.taskId], references: [activity.id] }),
+  uploadedBy: one(member, { fields: [taskDocument.uploadedById], references: [member.id] }),
 }))
 
 export const siteDocumentRelations = relations(siteDocument, ({ one }) => ({

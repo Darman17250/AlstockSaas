@@ -1,8 +1,17 @@
 import 'server-only'
-import { and, asc, desc, eq, isNull } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, or } from 'drizzle-orm'
 
 import { db } from '@/database'
-import { activity, client, deal, member, site, user } from '@/database/schema'
+import {
+  activity,
+  client,
+  deal,
+  equipment,
+  member,
+  site,
+  taskAssignee,
+  user,
+} from '@/database/schema'
 import {
   type OrgContext,
   ForbiddenError,
@@ -70,7 +79,22 @@ const assertMemberInOrg = async (ctx: OrgContext, id: string): Promise<void> => 
   if (!row) throw new ForbiddenError('Assigné invalide pour cette organisation')
 }
 
-/** Vérifie tous les liens fournis (client/affaire/chantier/assigné) en une passe. */
+const assertEquipmentInOrg = async (ctx: OrgContext, id: string): Promise<void> => {
+  const [row] = await db
+    .select({ id: equipment.id })
+    .from(equipment)
+    .where(
+      and(
+        eq(equipment.id, id),
+        eq(equipment.organizationId, ctx.organizationId),
+        isNull(equipment.deletedAt)
+      )
+    )
+    .limit(1)
+  if (!row) throw new NotFoundError('Équipement introuvable')
+}
+
+/** Vérifie tous les liens fournis (client/affaire/chantier/équipement/assigné). */
 const assertLinks = async (
   ctx: OrgContext,
   input: TaskCreateInput | TaskUpdateInput
@@ -78,6 +102,7 @@ const assertLinks = async (
   if (input.clientId) await assertClientInOrg(ctx, input.clientId)
   if (input.dealId) await assertDealInOrg(ctx, input.dealId)
   if (input.siteId) await assertSiteInOrg(ctx, input.siteId)
+  if (input.equipmentId) await assertEquipmentInOrg(ctx, input.equipmentId)
   if (input.assigneeId) await assertMemberInOrg(ctx, input.assigneeId)
 }
 
@@ -92,7 +117,13 @@ const toColumns = (input: TaskCreateInput | TaskUpdateInput) => ({
   clientId: input.clientId ?? null,
   dealId: input.dealId ?? null,
   siteId: input.siteId ?? null,
+  equipmentId: input.equipmentId ?? null,
 })
+
+export interface TaskCoAssignee {
+  id: string
+  name: string
+}
 
 export interface TaskItem {
   id: string
@@ -108,7 +139,66 @@ export interface TaskItem {
   dealTitle: string | null
   siteId: string | null
   siteName: string | null
+  coAssignees: TaskCoAssignee[]
 }
+
+type TaskRow = Omit<TaskItem, 'coAssignees'>
+
+/** Restreint une liste d'ids de membres à ceux réellement présents dans l'org. */
+const filterMembersInOrg = async (ctx: OrgContext, ids: string[]): Promise<string[]> => {
+  const uniq = [...new Set(ids)]
+  if (uniq.length === 0) return []
+  const rows = await db
+    .select({ id: member.id })
+    .from(member)
+    .where(and(inArray(member.id, uniq), eq(member.organizationId, ctx.organizationId)))
+  return rows.map((r) => r.id)
+}
+
+/** Co-assignés valides (dans l'org, dédupliqués, hors responsable). */
+const validCoAssignees = async (
+  ctx: OrgContext,
+  input: TaskCreateInput | TaskUpdateInput
+): Promise<string[]> => {
+  const ids = (input.coAssigneeIds ?? []).filter((id) => id && id !== input.assigneeId)
+  return filterMembersInOrg(ctx, ids)
+}
+
+/** Attache les co-assignés (table `task_assignee`) à une liste de tâches. */
+const attachCoAssignees = async (ctx: OrgContext, rows: TaskRow[]): Promise<TaskItem[]> => {
+  if (rows.length === 0) return []
+  const ids = rows.map((r) => r.id)
+  const coRows = await db
+    .select({
+      taskId: taskAssignee.taskId,
+      memberId: taskAssignee.memberId,
+      name: user.name,
+      email: user.email,
+    })
+    .from(taskAssignee)
+    .innerJoin(member, eq(taskAssignee.memberId, member.id))
+    .innerJoin(user, eq(member.userId, user.id))
+    .where(
+      and(inArray(taskAssignee.taskId, ids), eq(taskAssignee.organizationId, ctx.organizationId))
+    )
+
+  const byTask = new Map<string, TaskCoAssignee[]>()
+  for (const c of coRows) {
+    const list = byTask.get(c.taskId) ?? []
+    list.push({ id: c.memberId, name: c.name || c.email })
+    byTask.set(c.taskId, list)
+  }
+  return rows.map((r) => ({ ...r, coAssignees: byTask.get(r.id) ?? [] }))
+}
+
+/** Sous-requête : ids de tâches où le membre est co-assigné. */
+const coAssignedTaskIds = (ctx: OrgContext, memberId: string) =>
+  db
+    .select({ id: taskAssignee.taskId })
+    .from(taskAssignee)
+    .where(
+      and(eq(taskAssignee.memberId, memberId), eq(taskAssignee.organizationId, ctx.organizationId))
+    )
 
 const taskSelect = {
   id: activity.id,
@@ -141,15 +231,19 @@ const taskQuery = () =>
 export const listMyTasks = async (ctx: OrgContext): Promise<TaskItem[]> => {
   requirePermission(ctx, 'activity', 'read')
 
-  return taskQuery()
+  const rows = await taskQuery()
     .where(
       and(
         eq(activity.organizationId, ctx.organizationId),
         eq(activity.type, TASK_TYPE),
-        eq(activity.assigneeId, ctx.memberId)
+        or(
+          eq(activity.assigneeId, ctx.memberId),
+          inArray(activity.id, coAssignedTaskIds(ctx, ctx.memberId))
+        )
       )
     )
     .orderBy(asc(activity.dueDate), desc(activity.createdAt))
+  return attachCoAssignees(ctx, rows)
 }
 
 /** Toutes les tâches de l'organisation (vue « Équipe »), filtrables. */
@@ -160,17 +254,24 @@ export const listTeamTasks = async (
   requirePermission(ctx, 'activity', 'read')
 
   const conditions = [eq(activity.organizationId, ctx.organizationId), eq(activity.type, TASK_TYPE)]
-  if (params.assigneeId) conditions.push(eq(activity.assigneeId, params.assigneeId))
+  if (params.assigneeId) {
+    const assigneeFilter = or(
+      eq(activity.assigneeId, params.assigneeId),
+      inArray(activity.id, coAssignedTaskIds(ctx, params.assigneeId))
+    )
+    if (assigneeFilter) conditions.push(assigneeFilter)
+  }
   if (params.status) conditions.push(eq(activity.status, params.status))
 
-  return taskQuery()
+  const rows = await taskQuery()
     .where(and(...conditions))
     .orderBy(asc(activity.dueDate), desc(activity.createdAt))
+  return attachCoAssignees(ctx, rows)
 }
 
 export const listTasksForDeal = async (ctx: OrgContext, dealId: string): Promise<TaskItem[]> => {
   requirePermission(ctx, 'activity', 'read')
-  return taskQuery()
+  const rows = await taskQuery()
     .where(
       and(
         eq(activity.organizationId, ctx.organizationId),
@@ -179,6 +280,7 @@ export const listTasksForDeal = async (ctx: OrgContext, dealId: string): Promise
       )
     )
     .orderBy(asc(activity.dueDate), desc(activity.createdAt))
+  return attachCoAssignees(ctx, rows)
 }
 
 export const listTasksForClient = async (
@@ -186,7 +288,7 @@ export const listTasksForClient = async (
   clientId: string
 ): Promise<TaskItem[]> => {
   requirePermission(ctx, 'activity', 'read')
-  return taskQuery()
+  const rows = await taskQuery()
     .where(
       and(
         eq(activity.organizationId, ctx.organizationId),
@@ -195,11 +297,12 @@ export const listTasksForClient = async (
       )
     )
     .orderBy(asc(activity.dueDate), desc(activity.createdAt))
+  return attachCoAssignees(ctx, rows)
 }
 
 export const listTasksForSite = async (ctx: OrgContext, siteId: string): Promise<TaskItem[]> => {
   requirePermission(ctx, 'activity', 'read')
-  return taskQuery()
+  const rows = await taskQuery()
     .where(
       and(
         eq(activity.organizationId, ctx.organizationId),
@@ -208,26 +311,13 @@ export const listTasksForSite = async (ctx: OrgContext, siteId: string): Promise
       )
     )
     .orderBy(asc(activity.dueDate), desc(activity.createdAt))
+  return attachCoAssignees(ctx, rows)
 }
 
-export const createTask = async (ctx: OrgContext, input: TaskCreateInput) => {
-  requirePermission(ctx, 'activity', 'create')
-  await assertLinks(ctx, input)
-
-  const [created] = await db
-    .insert(activity)
-    .values({ ...toColumns(input), organizationId: ctx.organizationId })
-    .returning({ id: activity.id })
-  return created
-}
-
-export const updateTask = async (ctx: OrgContext, id: string, input: TaskUpdateInput) => {
-  requirePermission(ctx, 'activity', 'update')
-  await assertLinks(ctx, input)
-
-  const [updated] = await db
-    .update(activity)
-    .set(toColumns(input))
+/** Tâche détaillée (page dédiée) : champs + co-assignés. */
+export const getTask = async (ctx: OrgContext, id: string): Promise<TaskItem> => {
+  requirePermission(ctx, 'activity', 'read')
+  const [row] = await taskQuery()
     .where(
       and(
         eq(activity.id, id),
@@ -235,10 +325,71 @@ export const updateTask = async (ctx: OrgContext, id: string, input: TaskUpdateI
         eq(activity.type, TASK_TYPE)
       )
     )
-    .returning({ id: activity.id })
+    .limit(1)
+  if (!row) throw new NotFoundError('Tâche introuvable')
+  const [withCo] = await attachCoAssignees(ctx, [row])
+  return withCo
+}
 
-  if (!updated) throw new NotFoundError('Tâche introuvable')
-  return updated
+export const createTask = async (ctx: OrgContext, input: TaskCreateInput) => {
+  requirePermission(ctx, 'activity', 'create')
+  await assertLinks(ctx, input)
+  const coAssignees = await validCoAssignees(ctx, input)
+
+  return db.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(activity)
+      .values({ ...toColumns(input), organizationId: ctx.organizationId })
+      .returning({ id: activity.id })
+
+    if (coAssignees.length > 0) {
+      await tx.insert(taskAssignee).values(
+        coAssignees.map((memberId) => ({
+          organizationId: ctx.organizationId,
+          taskId: created.id,
+          memberId,
+        }))
+      )
+    }
+    return created
+  })
+}
+
+export const updateTask = async (ctx: OrgContext, id: string, input: TaskUpdateInput) => {
+  requirePermission(ctx, 'activity', 'update')
+  await assertLinks(ctx, input)
+  const coAssignees = await validCoAssignees(ctx, input)
+
+  return db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(activity)
+      .set(toColumns(input))
+      .where(
+        and(
+          eq(activity.id, id),
+          eq(activity.organizationId, ctx.organizationId),
+          eq(activity.type, TASK_TYPE)
+        )
+      )
+      .returning({ id: activity.id })
+
+    if (!updated) throw new NotFoundError('Tâche introuvable')
+
+    // Remplace l'ensemble des co-assignés.
+    await tx
+      .delete(taskAssignee)
+      .where(and(eq(taskAssignee.taskId, id), eq(taskAssignee.organizationId, ctx.organizationId)))
+    if (coAssignees.length > 0) {
+      await tx.insert(taskAssignee).values(
+        coAssignees.map((memberId) => ({
+          organizationId: ctx.organizationId,
+          taskId: id,
+          memberId,
+        }))
+      )
+    }
+    return updated
+  })
 }
 
 /** Bascule le statut (case à cocher) sans toucher aux autres champs. */

@@ -15,9 +15,12 @@ export default function NotFound() {
         <div className='w-full max-w-[410px]'>
           <div className='flex flex-col items-center justify-center'>
             <div className='space-y-1 text-center'>
-              <h1 className='font-medium text-[32px] text-black tracking-tight'>Page non trouvée</h1>
+              <h1 className='font-medium text-[32px] text-black tracking-tight'>
+                Page non trouvée
+              </h1>
               <p className='font-[380] text-[16px] text-muted-foreground'>
-                La page que vous recherchez n’existe pas ou a été supprimée. Veuillez vérifier l’URL et réessayer.
+                La page que vous recherchez n’existe pas ou a été supprimée. Veuillez vérifier l’URL
+                et réessayer.
               </p>
             </div>
 

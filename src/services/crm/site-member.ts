@@ -47,7 +47,12 @@ export const listSiteTeam = async (ctx: OrgContext, siteId: string): Promise<Sit
   requirePermission(ctx, 'site', 'read')
 
   const rows = await db
-    .select({ memberId: siteMember.memberId, name: user.name, email: user.email, role: member.role })
+    .select({
+      memberId: siteMember.memberId,
+      name: user.name,
+      email: user.email,
+      role: member.role,
+    })
     .from(siteMember)
     .innerJoin(member, eq(siteMember.memberId, member.id))
     .innerJoin(user, eq(member.userId, user.id))

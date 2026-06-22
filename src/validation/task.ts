@@ -26,9 +26,12 @@ export const taskFieldsSchema = z.object({
   dueDate: optionalDate,
   status: z.enum(taskStatusEnum.enumValues).default('a_faire'),
   assigneeId: optionalText,
+  /** Co-assignés (en plus du responsable `assigneeId`). Ids de membres. */
+  coAssigneeIds: z.preprocess((v) => (Array.isArray(v) ? v : []), z.array(z.string()).default([])),
   clientId: optionalUuid,
   dealId: optionalUuid,
   siteId: optionalUuid,
+  equipmentId: optionalUuid,
 })
 
 export const taskCreateSchema = taskFieldsSchema
