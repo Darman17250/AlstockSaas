@@ -7,8 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: brand.name,
     short_name: brand.name,
-    description:
-      'ShipFree is a free open-source Next.js SaaS boilerplate alternative to ShipFast. Simplify and optimize your shipping process with modern web technologies like Supabase, Stripe, LemonSqueezy, Drizzle ORM, and Mailgun.',
+    description: 'CRM et suivi de chantiers pour le BTP.',
     start_url: '/',
     scope: '/',
     display: 'standalone',
@@ -17,19 +16,10 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: 'portrait-primary',
     icons: [
       {
-        src: '/favicon/android-chrome-192x192.png',
-        sizes: '192x192',
-        type: 'image/png',
-      },
-      {
-        src: '/favicon/android-chrome-512x512.png',
+        src: '/image.png',
         sizes: '512x512',
         type: 'image/png',
-      },
-      {
-        src: '/favicon/apple-touch-icon.png',
-        sizes: '180x180',
-        type: 'image/png',
+        purpose: 'any',
       },
     ],
     categories: ['developer tools', 'productivity', 'saas'],
@@ -37,7 +27,7 @@ export default function manifest(): MetadataRoute.Manifest {
       {
         name: 'Open dashboard',
         short_name: 'Dashboard',
-        description: 'Go to your ShipFree dashboard',
+        description: 'Accéder au tableau de bord',
         url: '/dashboard',
       },
     ],
