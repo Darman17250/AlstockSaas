@@ -52,12 +52,10 @@ export const auth = betterAuth({
 
   advanced: {
     cookiePrefix: APP_COOKIE_NAME, // Change this to your cookie prefix
-    // Cookies cross-sous-domaines : UNIQUEMENT en prod (sur un vrai domaine).
-    // En dev (localhost), un Domain=.exemple.app rendrait le cookie inutilisable.
-    crossSubDomainCookies: {
-      enabled: isProd,
-      domain: '.shipfree.app', // TODO: remplacer par le domaine de prod réel
-    },
+    // Cookie attaché à l'hôte courant (host-only) : fonctionne sur *.vercel.app
+    // comme sur un domaine perso, sans config. Le cross-sous-domaine n'est utile
+    // que si l'app est servie sur plusieurs sous-domaines d'un même apex —
+    // dans ce cas, réactiver crossSubDomainCookies avec le bon `domain`.
     // Cookies `Secure` seulement sur https (prod) ; en http localhost, false.
     useSecureCookies: isProd,
   },
