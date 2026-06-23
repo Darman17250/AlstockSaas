@@ -6,7 +6,18 @@
       "Bash(curl -s -o /dev/null -w '  %{http_code}\\\\n' --max-redirs 0 http://localhost:3001/api/equipements/documents/__TRACKED_VAR__)",
       "Read(//private/tmp/**)",
       "Bash(bun run *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(curl -s -o /dev/null -w 'HTTP %{http_code}\\\\n' https://alstock-saas.vercel.app/)",
+      "Bash(curl -s -o /dev/null -w 'HTTP %{http_code}\\\\n' https://alstock-saas.vercel.app/login)",
+      "Bash(curl -s -o /dev/null -w 'HTTP %{http_code}\\\\n' https://alstock-saas.vercel.app/register)",
+      "Bash(curl -s -o /dev/null -w 'HTTP %{http_code}\\\\n' https://alstock-saas.vercel.app/api/auth/get-session)",
+      "Bash(curl -s https://alstock-saas.vercel.app/)",
+      "Bash(curl -s -X POST https://alstock-saas.vercel.app/api/auth/sign-up/email -H 'Content-Type: application/json' -d '{\"email\":\"smoketest+deploy@example.com\",\"password\":\"Test1234!\",\"name\":\"Smoke Test\"}' -w '\\\\n--- HTTP %{http_code} | temps total: %{time_total}s ---\\\\n')",
+      "Bash(curl -s -X POST https://alstock-saas.vercel.app/api/auth/sign-up/email -H 'Content-Type: application/json' -d '{\"email\":\"smoketest+__CMDSUB_OUTPUT__@example.com\",\"password\":\"Test1234!\",\"name\":\"Smoke Test\"}' -w '\\\\n--- HTTP %{http_code} | temps: %{time_total}s ---\\\\n')",
+      "Bash(curl -s -i -X POST https://alstock-saas.vercel.app/api/auth/sign-in/email -H 'Content-Type: application/json' -d '{\"email\":\"test@test.fr\",\"password\":\"benjamin\"}' -w '\\\\n--- HTTP %{http_code} | temps: %{time_total}s ---\\\\n')",
+      "Bash(bunx biome *)"
     ]
   }
 }

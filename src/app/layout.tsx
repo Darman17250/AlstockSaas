@@ -23,9 +23,9 @@ const bricolageGrotesque = Bricolage_Grotesque({
 
 export const metadata: Metadata = {
   ...generateMetadata({
-    title: 'ShipFree - Turn Ideas Into Products, Fast',
+    title: 'Alstock — CRM & suivi de chantiers pour le BTP',
     description:
-      'Ship your startup in days, not weeks. A production-ready Next.js boilerplate with auth, payments, and everything you need to launch fast. Free forever, open source.',
+      'Le logiciel qui relie votre commercial et vos chantiers, sans ressaisie. Clients, affaires, chantiers, tâches et équipe — pensé pour les TPE et PME du BTP.',
     isRootLayout: true,
   }),
   icons: {
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang='en'>
+    <html lang='fr'>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${bricolageGrotesque.variable} font-sans antialiased`}
       >

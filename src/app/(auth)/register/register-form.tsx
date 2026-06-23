@@ -17,13 +17,13 @@ const validateEmailField = (emailValue: string): string[] => {
   const errors: string[] = []
 
   if (!emailValue || !emailValue.trim()) {
-    errors.push('Email is required.')
+    errors.push('L’adresse email est requise.')
     return errors
   }
 
   const validation = quickValidateEmail(emailValue.trim().toLowerCase())
   if (!validation.isValid) {
-    errors.push(validation.reason || 'Please enter a valid email address.')
+    errors.push(validation.reason || 'Veuillez saisir une adresse email valide.')
   }
 
   return errors
@@ -32,7 +32,7 @@ const validateEmailField = (emailValue: string): string[] => {
 const PASSWORD_VALIDATIONS = {
   minLength: {
     test: (value: string) => value.length >= 8,
-    message: 'Password must be at least 8 characters long.',
+    message: 'Le mot de passe doit contenir au moins 8 caractères.',
   },
 }
 
@@ -103,7 +103,7 @@ export default function RegisterForm({
     const errors: string[] = []
 
     if (!trimmed) {
-      errors.push('Name is required.')
+      errors.push('Le nom est requis.')
     }
 
     setNameErrors(errors)
@@ -140,7 +140,7 @@ export default function RegisterForm({
 
     const nameValidationErrors: string[] = []
     if (!nameValue) {
-      nameValidationErrors.push('Name is required.')
+      nameValidationErrors.push('Le nom est requis.')
     }
     setNameErrors(nameValidationErrors)
     setShowNameValidationError(nameValidationErrors.length > 0)
@@ -202,20 +202,20 @@ export default function RegisterForm({
   return (
     <>
       <div className='space-y-1 text-center'>
-        <h1 className='font-medium text-[32px] text-black tracking-tight'>Create an account</h1>
-        <p className='font-[380] text-[16px] text-muted-foreground'>Enter your details</p>
+        <h1 className='font-medium text-[32px] text-black tracking-tight'>Créer un compte</h1>
+        <p className='font-[380] text-[16px] text-muted-foreground'>Saisissez vos informations</p>
       </div>
 
       <form onSubmit={handleSubmit} className='mt-8 space-y-8'>
         <div className='space-y-6'>
           <div className='space-y-2'>
             <div className='flex items-center justify-between'>
-              <Label htmlFor='name'>Full name</Label>
+              <Label htmlFor='name'>Nom complet</Label>
             </div>
             <Input
               id='name'
               name='name'
-              placeholder='Enter your name'
+              placeholder='Saisissez votre nom'
               autoCapitalize='words'
               autoComplete='name'
               value={name}
@@ -244,7 +244,7 @@ export default function RegisterForm({
             <Input
               id='email'
               name='email'
-              placeholder='Enter your email'
+              placeholder='Saisissez votre email'
               required
               autoCapitalize='none'
               autoComplete='email'
@@ -270,7 +270,7 @@ export default function RegisterForm({
 
           <div className='space-y-2'>
             <div className='flex items-center justify-between'>
-              <Label htmlFor='password'>Password</Label>
+              <Label htmlFor='password'>Mot de passe</Label>
             </div>
             <div className='relative'>
               <Input
@@ -281,7 +281,7 @@ export default function RegisterForm({
                 autoCapitalize='none'
                 autoComplete='new-password'
                 autoCorrect='off'
-                placeholder='Enter your password'
+                placeholder='Saisissez votre mot de passe'
                 value={password}
                 size='lg'
                 onChange={handlePasswordChange}
@@ -296,7 +296,7 @@ export default function RegisterForm({
                 type='button'
                 onClick={() => setShowPassword(!showPassword)}
                 className='-translate-y-1/2 absolute top-1/2 right-3 text-gray-500 transition hover:text-gray-700'
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -320,7 +320,7 @@ export default function RegisterForm({
           disabled={isLoading}
         >
           <span className='flex items-center gap-1'>
-            {isLoading ? 'Creating account...' : 'Create account'}
+            {isLoading ? 'Création…' : 'Créer un compte'}
             <span className='inline-flex transition-transform duration-200 group-hover:translate-x-0.5'>
               {isButtonHovered ? (
                 <ArrowRight className='h-4 w-4' aria-hidden='true' />
@@ -338,7 +338,9 @@ export default function RegisterForm({
             <div className='w-full border-t border-gray-200' />
           </div>
           <div className='relative flex justify-center text-sm'>
-            <span className='bg-white px-4 font-[340] text-muted-foreground'>Or continue with</span>
+            <span className='bg-white px-4 font-[340] text-muted-foreground'>
+              Ou continuer avec
+            </span>
           </div>
         </div>
       )}
@@ -357,33 +359,33 @@ export default function RegisterForm({
       )}
 
       <div className='pt-6 text-center text-[14px] font-light'>
-        <span className='font-normal'>Already have an account? </span>
+        <span className='font-normal'>Déjà un compte ? </span>
         <Link
           href={`/login?callbackUrl=${callbackUrl}`}
           className='font-medium text-(--brand-accent-hex) underline-offset-4 transition hover:text-(--brand-accent-hover-hex) hover:underline'
         >
-          Sign in
+          Se connecter
         </Link>
       </div>
 
       <div className='absolute inset-x-0 bottom-0 px-8 pb-8 text-center text-[13px] font-[340] leading-relaxed text-muted-foreground sm:px-8 md:px-[44px]'>
-        By creating an account, you agree to our{' '}
+        En créant un compte, vous acceptez nos{' '}
         <Link
           href='/terms'
           target='_blank'
           rel='noopener noreferrer'
           className='text-(--brand-accent-hex) underline-offset-4 transition hover:text-(--brand-accent-hover-hex) hover:underline'
         >
-          Terms of Service
+          Conditions d’utilisation
         </Link>{' '}
-        and{' '}
+        et notre{' '}
         <Link
           href='/privacy'
           target='_blank'
           rel='noopener noreferrer'
           className='text-(--brand-accent-hex) underline-offset-4 transition hover:text-(--brand-accent-hover-hex) hover:underline'
         >
-          Privacy Policy
+          Politique de confidentialité
         </Link>
       </div>
     </>

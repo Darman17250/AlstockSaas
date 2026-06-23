@@ -26,13 +26,13 @@ const validateEmailField = (emailValue: string): string[] => {
   const errors: string[] = []
 
   if (!emailValue || !emailValue.trim()) {
-    errors.push('Email is required.')
+    errors.push('L’adresse email est requise.')
     return errors
   }
 
   const validation = quickValidateEmail(emailValue.trim().toLowerCase())
   if (!validation.isValid) {
-    errors.push(validation.reason || 'Please enter a valid email address.')
+    errors.push(validation.reason || 'Veuillez saisir une adresse email valide.')
   }
 
   return errors
@@ -41,11 +41,11 @@ const validateEmailField = (emailValue: string): string[] => {
 const PASSWORD_VALIDATIONS = {
   required: {
     test: (value: string) => Boolean(value && typeof value === 'string'),
-    message: 'Password is required.',
+    message: 'Le mot de passe est requis.',
   },
   notEmpty: {
     test: (value: string) => value.trim().length > 0,
-    message: 'Password cannot be empty.',
+    message: 'Le mot de passe ne peut pas être vide.',
   },
 }
 
@@ -204,7 +204,7 @@ export default function LoginPage({
         {
           onError: (ctx) => {
             console.error('Login error:', ctx.error)
-            const errorMessage: string[] = ['Invalid email or password']
+            const errorMessage: string[] = ['Email ou mot de passe invalide']
 
             if (ctx.error.code?.includes('EMAIL_NOT_VERIFIED')) {
               return
@@ -213,35 +213,35 @@ export default function LoginPage({
               ctx.error.code?.includes('BAD_REQUEST') ||
               ctx.error.message?.includes('Email and password sign in is not enabled')
             ) {
-              errorMessage.push('Email sign in is currently disabled.')
+              errorMessage.push('La connexion par email est actuellement désactivée.')
             } else if (
               ctx.error.code?.includes('INVALID_CREDENTIALS') ||
               ctx.error.message?.includes('invalid password')
             ) {
-              errorMessage.push('Invalid email or password. Please try again.')
+              errorMessage.push('Email ou mot de passe invalide. Veuillez réessayer.')
             } else if (
               ctx.error.code?.includes('USER_NOT_FOUND') ||
               ctx.error.message?.includes('not found')
             ) {
-              errorMessage.push('No account found with this email. Please sign up first.')
+              errorMessage.push('Aucun compte trouvé avec cet email. Créez d’abord un compte.')
             } else if (ctx.error.code?.includes('MISSING_CREDENTIALS')) {
-              errorMessage.push('Please enter both email and password.')
+              errorMessage.push('Veuillez saisir l’email et le mot de passe.')
             } else if (ctx.error.code?.includes('EMAIL_PASSWORD_DISABLED')) {
-              errorMessage.push('Email and password login is disabled.')
+              errorMessage.push('La connexion par email et mot de passe est désactivée.')
             } else if (ctx.error.code?.includes('FAILED_TO_CREATE_SESSION')) {
-              errorMessage.push('Failed to create session. Please try again later.')
+              errorMessage.push('Échec de la création de session. Veuillez réessayer plus tard.')
             } else if (ctx.error.code?.includes('too many attempts')) {
               errorMessage.push(
-                'Too many login attempts. Please try again later or reset your password.'
+                'Trop de tentatives de connexion. Réessayez plus tard ou réinitialisez votre mot de passe.'
               )
             } else if (ctx.error.code?.includes('account locked')) {
               errorMessage.push(
-                'Your account has been locked for security. Please reset your password.'
+                'Votre compte a été verrouillé pour des raisons de sécurité. Réinitialisez votre mot de passe.'
               )
             } else if (ctx.error.code?.includes('network')) {
-              errorMessage.push('Network error. Please check your connection and try again.')
+              errorMessage.push('Erreur réseau. Vérifiez votre connexion et réessayez.')
             } else if (ctx.error.message?.includes('rate limit')) {
-              errorMessage.push('Too many requests. Please wait a moment before trying again.')
+              errorMessage.push('Trop de requêtes. Patientez un instant avant de réessayer.')
             }
 
             setPasswordErrors(errorMessage)
@@ -273,7 +273,7 @@ export default function LoginPage({
     if (!forgotPasswordEmail) {
       setResetStatus({
         type: 'error',
-        message: 'Please enter your email address',
+        message: 'Veuillez saisir votre adresse email',
       })
       return
     }
@@ -282,7 +282,7 @@ export default function LoginPage({
     if (!emailValidation.isValid) {
       setResetStatus({
         type: 'error',
-        message: 'Please enter a valid email address',
+        message: 'Veuillez saisir une adresse email valide',
       })
       return
     }
@@ -304,20 +304,20 @@ export default function LoginPage({
 
       if (!response.ok) {
         const errorData = await response.json()
-        let errorMessage = errorData.message || 'Failed to request password reset'
+        let errorMessage = errorData.message || 'Échec de la demande de réinitialisation'
 
         if (
           errorMessage.includes('Invalid body parameters') ||
           errorMessage.includes('invalid email')
         ) {
-          errorMessage = 'Please enter a valid email address'
+          errorMessage = 'Veuillez saisir une adresse email valide'
         } else if (errorMessage.includes('Email is required')) {
-          errorMessage = 'Please enter your email address'
+          errorMessage = 'Veuillez saisir votre adresse email'
         } else if (
           errorMessage.includes('user not found') ||
           errorMessage.includes('User not found')
         ) {
-          errorMessage = 'No account found with this email address'
+          errorMessage = 'Aucun compte trouvé avec cette adresse email'
         }
 
         throw new Error(errorMessage)
@@ -325,7 +325,7 @@ export default function LoginPage({
 
       setResetStatus({
         type: 'success',
-        message: 'Password reset link sent to your email',
+        message: 'Lien de réinitialisation envoyé par email',
       })
 
       setTimeout(() => {
@@ -336,7 +336,7 @@ export default function LoginPage({
       console.error('Error requesting password reset:', { error })
       setResetStatus({
         type: 'error',
-        message: error instanceof Error ? error.message : 'Failed to request password reset',
+        message: error instanceof Error ? error.message : 'Échec de la demande de réinitialisation',
       })
     } finally {
       setIsSubmittingReset(false)
@@ -349,8 +349,8 @@ export default function LoginPage({
   return (
     <>
       <div className='space-y-1 text-center'>
-        <h1 className='font-medium text-[32px] text-black tracking-tight'>Sign in</h1>
-        <p className='font-[380] text-[16px] text-muted-foreground'>Enter your details</p>
+        <h1 className='font-medium text-[32px] text-black tracking-tight'>Connexion</h1>
+        <p className='font-[380] text-[16px] text-muted-foreground'>Saisissez vos identifiants</p>
       </div>
 
       <form onSubmit={onSubmit} className={`mt-8 space-y-8`}>
@@ -362,7 +362,7 @@ export default function LoginPage({
             <Input
               id='email'
               name='email'
-              placeholder='Enter your email'
+              placeholder='Saisissez votre email'
               required
               autoCapitalize='none'
               size={'lg'}
@@ -387,13 +387,13 @@ export default function LoginPage({
           </div>
           <div className='space-y-2'>
             <div className='flex items-center justify-between'>
-              <Label htmlFor='password'>Password</Label>
+              <Label htmlFor='password'>Mot de passe</Label>
               <button
                 type='button'
                 onClick={() => setForgotPasswordOpen(true)}
                 className='font-medium text-muted-foreground text-xs transition hover:text-foreground'
               >
-                Forgot password?
+                Mot de passe oublié ?
               </button>
             </div>
             <div className='relative'>
@@ -405,7 +405,7 @@ export default function LoginPage({
                 autoCapitalize='none'
                 autoComplete='current-password'
                 autoCorrect='off'
-                placeholder='Enter your password'
+                placeholder='Saisissez votre mot de passe'
                 value={password}
                 size={'lg'}
                 onChange={handlePasswordChange}
@@ -420,7 +420,7 @@ export default function LoginPage({
                 type='button'
                 onClick={() => setShowPassword(!showPassword)}
                 className='-translate-y-1/2 absolute top-1/2 right-3 text-gray-500 transition hover:text-gray-700'
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -444,7 +444,7 @@ export default function LoginPage({
           disabled={isLoading}
         >
           <span className='flex items-center gap-1'>
-            {isLoading ? 'Signing in...' : 'Sign in'}
+            {isLoading ? 'Connexion…' : 'Se connecter'}
             <span className='inline-flex transition-transform duration-200 group-hover:translate-x-0.5'>
               {isButtonHovered ? (
                 <ArrowRight className='h-4 w-4' aria-hidden='true' />
@@ -463,7 +463,9 @@ export default function LoginPage({
             <div className='w-full border-t border-gray-200' />
           </div>
           <div className='relative flex justify-center text-sm'>
-            <span className='bg-white px-4 font-[340] text-muted-foreground'>Or continue with</span>
+            <span className='bg-white px-4 font-[340] text-muted-foreground'>
+              Ou continuer avec
+            </span>
           </div>
         </div>
       )}
@@ -482,33 +484,33 @@ export default function LoginPage({
       )}
 
       <div className='pt-6 text-center text-[14px] font-light'>
-        <span className='font-normal'>Don't have an account? </span>
+        <span className='font-normal'>Pas encore de compte ? </span>
         <Link
           href={`/register?callbackUrl=${callbackUrl}`}
           className='font-medium text-(--brand-accent-hex) underline-offset-4 transition hover:text-(--brand-accent-hover-hex) hover:underline'
         >
-          Sign up
+          Créer un compte
         </Link>
       </div>
 
       <div className='absolute inset-x-0 bottom-0 px-8 pb-8 text-center text-[13px] font-[340] leading-relaxed text-muted-foreground sm:px-8 md:px-[44px]'>
-        By signing in, you agree to our{' '}
+        En vous connectant, vous acceptez nos{' '}
         <Link
           href='/terms'
           target='_blank'
           rel='noopener noreferrer'
           className='text-(--brand-accent-hex) underline-offset-4 transition hover:text-(--brand-accent-hover-hex) hover:underline'
         >
-          Terms of Service
+          Conditions d’utilisation
         </Link>{' '}
-        and{' '}
+        et notre{' '}
         <Link
           href='/privacy'
           target='_blank'
           rel='noopener noreferrer'
           className='text-(--brand-accent-hex) underline-offset-4 transition hover:text-(--brand-accent-hover-hex) hover:underline'
         >
-          Privacy Policy
+          Politique de confidentialité
         </Link>
       </div>
 
@@ -516,11 +518,11 @@ export default function LoginPage({
         <DialogPopup>
           <DialogHeader>
             <DialogTitle className='text-xl font-semibold tracking-tight text-black'>
-              Reset Password
+              Réinitialiser le mot de passe
             </DialogTitle>
             <DialogDescription className='text-sm text-muted-foreground'>
-              Enter your email address and we'll send you a link to reset your password if your
-              account exists.
+              Saisissez votre adresse email : si un compte existe, nous vous enverrons un lien pour
+              réinitialiser votre mot de passe.
             </DialogDescription>
           </DialogHeader>
           <DialogPanel className='space-y-4'>
@@ -532,7 +534,7 @@ export default function LoginPage({
                 id='reset-email'
                 value={forgotPasswordEmail}
                 onChange={(event) => setForgotPasswordEmail(event.target.value)}
-                placeholder='Enter your email'
+                placeholder='Saisissez votre email'
                 size={'lg'}
                 type='email'
                 className={cn(
@@ -563,7 +565,7 @@ export default function LoginPage({
               disabled={isSubmittingReset}
             >
               <span className='flex items-center gap-1'>
-                {isSubmittingReset ? 'Sending...' : 'Send Reset Link'}
+                {isSubmittingReset ? 'Envoi…' : 'Envoyer le lien'}
                 <span className='inline-flex transition-transform duration-200 group-hover:translate-x-0.5'>
                   {isResetButtonHovered ? (
                     <ArrowRight className='h-4 w-4' aria-hidden='true' />

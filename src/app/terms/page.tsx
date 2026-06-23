@@ -5,8 +5,8 @@ import Footer from '../(site)/footer'
 import { GridLayout } from '../(site)/grid-layout'
 
 export const metadata: Metadata = generateSEOMetadata({
-  title: 'Terms of Service',
-  description: 'Terms of Service for ShipFree platform',
+  title: 'Conditions d’utilisation',
+  description: 'Conditions d’utilisation de la plateforme Alstock',
   canonical: '/terms',
 })
 
@@ -16,33 +16,37 @@ export default async function TermsPage() {
       <Navbar />
       <main className='min-h-screen pt-14'>
         <div className='mx-auto max-w-4xl px-4 py-16 sm:px-6'>
-          <h1 className='mb-4 text-4xl font-semibold tracking-tight'>Terms of Service</h1>
-          <p className='mb-12 text-sm text-muted-foreground'>Last updated: 17 jan 2026</p>
+          <h1 className='mb-4 text-4xl font-semibold tracking-tight'>Conditions d’utilisation</h1>
+          <p className='mb-12 text-sm text-muted-foreground'>Dernière mise à jour : 22 juin 2026</p>
 
           <div className='prose prose-sm max-w-none space-y-8 text-muted-foreground'>
             <p>
-              welcome to shipfree. by accessing or using our platform, you agree to these terms. if
-              you don't agree, please don't use shipfree.
+              Bienvenue sur Alstock. En accédant à la plateforme ou en l’utilisant, vous acceptez
+              les présentes conditions. Si vous ne les acceptez pas, merci de ne pas utiliser
+              Alstock.
             </p>
 
             <section>
-              <h2 className='mb-4 text-xl font-semibold text-foreground'>1. using shipfree</h2>
+              <h2 className='mb-4 text-xl font-semibold text-foreground'>
+                1. Utilisation d’Alstock
+              </h2>
               <p>
-                you must use shipfree only for lawful purposes. you're responsible for how you use
-                the platform, including any projects, code, or data you upload or share.
+                Vous vous engagez à utiliser Alstock uniquement à des fins licites. Vous êtes
+                responsable de l’usage que vous faites de la plateforme, y compris des données et
+                documents que vous y enregistrez ou partagez.
               </p>
             </section>
 
             <section>
-              <h2 className='mb-4 text-xl font-semibold text-foreground'>2. accounts</h2>
+              <h2 className='mb-4 text-xl font-semibold text-foreground'>2. Comptes</h2>
               <p>
-                you're responsible for keeping your account secure. if you suspect unauthorized
-                access, contact us immediately at{' '}
+                Vous êtes responsable de la sécurité de votre compte. En cas de suspicion d’accès
+                non autorisé, contactez-nous immédiatement à{' '}
                 <a
-                  href='mailto:support@shipfree.dev'
+                  href='mailto:contact@alstock.fr'
                   className='text-(--brand-accent-hex) underline-offset-4 hover:text-(--brand-accent-hover-hex) hover:underline'
                 >
-                  support@shipfree.dev
+                  contact@alstock.fr
                 </a>
                 .
               </p>
@@ -50,37 +54,40 @@ export default async function TermsPage() {
 
             <section>
               <h2 className='mb-4 text-xl font-semibold text-foreground'>
-                3. intellectual property
+                3. Propriété intellectuelle
               </h2>
               <p>
-                all code, templates, and assets provided through shipfree are owned by us or
-                licensed to us. you retain rights to your own projects built using our tools, but
-                not to the underlying boilerplate.
+                Le logiciel Alstock et l’ensemble de ses composants restent notre propriété ou celle
+                de nos partenaires. Vous conservez l’ensemble des droits sur vos propres données
+                métier (clients, affaires, chantiers).
               </p>
             </section>
 
             <section>
-              <h2 className='mb-4 text-xl font-semibold text-foreground'>4. restrictions</h2>
+              <h2 className='mb-4 text-xl font-semibold text-foreground'>4. Restrictions</h2>
               <p>
-                don't attempt to hack, decompile, or resell shipfree's products or services. we
-                reserve the right to suspend or terminate accounts that violate these terms.
+                Il est interdit de tenter de pirater, décompiler ou revendre les services d’Alstock.
+                Nous nous réservons le droit de suspendre ou de fermer tout compte ne respectant pas
+                ces conditions.
               </p>
             </section>
 
             <section>
-              <h2 className='mb-4 text-xl font-semibold text-foreground'>5. liability</h2>
+              <h2 className='mb-4 text-xl font-semibold text-foreground'>5. Responsabilité</h2>
               <p>
-                shipfree is provided "as is." we don't guarantee uninterrupted service or that our
-                platform will be error-free. we're not liable for any damages, data loss, or
-                downtime.
+                Alstock est fourni « en l’état ». Nous ne garantissons pas un service ininterrompu
+                ni exempt d’erreurs. Notre responsabilité ne saurait être engagée en cas de
+                dommages, de perte de données ou d’indisponibilité.
               </p>
             </section>
 
             <section>
-              <h2 className='mb-4 text-xl font-semibold text-foreground'>6. updates to terms</h2>
+              <h2 className='mb-4 text-xl font-semibold text-foreground'>
+                6. Évolution des conditions
+              </h2>
               <p>
-                we may update these terms anytime. continued use means you accept the latest
-                version.
+                Nous pouvons mettre à jour ces conditions à tout moment. La poursuite de
+                l’utilisation vaut acceptation de la version la plus récente.
               </p>
             </section>
           </div>

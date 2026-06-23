@@ -22,11 +22,11 @@ export interface BrandConfig {
  * Default brand configuration values
  */
 const defaultConfig: BrandConfig = {
-  name: 'ShipFree',
+  name: 'Alstock',
   logoUrl: undefined,
-  faviconUrl: '/favicon/favicon.ico',
+  faviconUrl: '/image.png',
   customCssUrl: undefined,
-  supportEmail: 'hi@revoks.dev',
+  supportEmail: 'contact@alstock.fr',
   documentationUrl: undefined,
   termsUrl: undefined,
   privacyUrl: undefined,

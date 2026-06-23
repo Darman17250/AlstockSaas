@@ -51,12 +51,12 @@ function VerificationForm({ isProduction }: { isProduction: boolean }) {
     <>
       <div className='space-y-1 text-center'>
         <h1 className='font-medium text-[32px] text-black tracking-tight'>
-          {isVerified ? 'Email Verified!' : 'Verify Your Email'}
+          {isVerified ? 'Email vérifié !' : 'Vérifiez votre email'}
         </h1>
         <p className='font-[380] text-[16px] text-muted-foreground'>
           {isVerified
-            ? 'Your email has been verified. Redirecting to dashboard...'
-            : `A verification code has been sent to ${email || 'your email'}`}
+            ? 'Votre email a été vérifié. Redirection vers le tableau de bord…'
+            : `Un code de vérification a été envoyé à ${email || 'votre email'}`}
         </p>
       </div>
 
@@ -64,7 +64,7 @@ function VerificationForm({ isProduction }: { isProduction: boolean }) {
         <div className='mt-8 space-y-8'>
           <div className='space-y-6'>
             <p className='text-center text-muted-foreground text-sm'>
-              Enter the 6-digit code to verify your account.
+              Saisissez le code à 6 chiffres pour vérifier votre compte.
             </p>
 
             <div className='flex justify-center'>
@@ -147,15 +147,15 @@ function VerificationForm({ isProduction }: { isProduction: boolean }) {
             className='flex w-full items-center justify-center gap-2 rounded-[10px] py-[6px] pr-[10px] pl-[12px] text-[15px] font-medium text-white shadow-[inset_0_2px_4px_0_#9B77FF] transition-all'
             disabled={!isOtpComplete || isLoading}
           >
-            {isLoading ? 'Verifying...' : 'Verify Email'}
+            {isLoading ? 'Vérification…' : 'Vérifier l’email'}
           </Button>
 
           <div className='text-center'>
             <p className='text-muted-foreground text-sm'>
-              Didn't receive a code?{' '}
+              Vous n’avez pas reçu de code ?{' '}
               {countdown > 0 ? (
                 <span>
-                  Resend in <span className='font-medium text-foreground'>{countdown}s</span>
+                  Renvoyer dans <span className='font-medium text-foreground'>{countdown}s</span>
                 </span>
               ) : (
                 <button
@@ -163,7 +163,7 @@ function VerificationForm({ isProduction }: { isProduction: boolean }) {
                   onClick={handleResend}
                   disabled={isLoading || isResendDisabled}
                 >
-                  Resend
+                  Renvoyer
                 </button>
               )}
             </p>
@@ -177,11 +177,11 @@ function VerificationForm({ isProduction }: { isProduction: boolean }) {
                   sessionStorage.removeItem('inviteRedirectUrl')
                   sessionStorage.removeItem('isInviteFlow')
                 }
-                router.push('/signup')
+                router.push('/register')
               }}
               className='font-medium text-(--brand-accent-hex) underline-offset-4 transition hover:text-(--brand-accent-hover-hex) hover:underline'
             >
-              Back to signup
+              Retour à l’inscription
             </button>
           </div>
         </div>

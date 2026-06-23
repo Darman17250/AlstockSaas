@@ -6,7 +6,7 @@ import { isEmailVerificationEnabled } from '@/config/feature-flags'
 export const dynamic = 'force-dynamic'
 
 export const metadata = generateMetadata({
-  title: 'Sign up | ShipFree',
+  title: 'Inscription | Alstock',
 })
 
 export default async function RegisterPage() {
