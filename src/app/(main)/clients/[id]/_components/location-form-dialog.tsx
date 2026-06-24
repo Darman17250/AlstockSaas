@@ -99,7 +99,7 @@ export const LocationFormDialog = ({
             {location ? 'Modifier la localisation' : 'Nouvelle localisation'}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className='flex min-h-0 flex-1 flex-col'>
           <DialogPanel className='space-y-4'>
             <div className='grid gap-4 sm:grid-cols-2'>
               <div className='space-y-2'>

@@ -13,8 +13,8 @@ interface TasksSectionProps {
   canEdit: boolean
   currentMemberId: string
   members: OrgMemberOption[]
-  /** Liaison imposée par le contexte (fiche affaire ou client). */
-  locked: { clientId?: string; dealId?: string; siteId?: string }
+  /** Liaison imposée par le contexte (fiche affaire/client/chantier/équipement). */
+  locked: { clientId?: string; dealId?: string; siteId?: string; equipmentId?: string }
 }
 
 /** Section « Tâches » réutilisable sur les fiches (affaire, client). */

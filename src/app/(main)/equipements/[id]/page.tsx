@@ -12,11 +12,18 @@ import { getEquipment } from '@/services/crm/equipment'
 import { listEquipmentDocuments } from '@/services/crm/equipment-document'
 import { listLocationsForClient } from '@/services/crm/location'
 import { listMaintenanceForEquipment } from '@/services/crm/maintenance'
+import { listTasksForEquipment, type TaskItem } from '@/services/crm/task'
 import { listOrgMembers } from '@/services/org/members'
+import { TasksSection } from '../../taches/_components/tasks-section'
 import { EquipmentDetailActions } from './_components/equipment-detail-actions'
 import { EquipmentDocumentsSection } from './_components/equipment-documents-section'
 import { MaintenanceSection } from './_components/maintenance-section'
 import { ReminderButton } from './_components/reminder-button'
+
+const taskToView = (t: TaskItem) => ({
+  ...t,
+  dueDate: t.dueDate ? new Date(t.dueDate).toISOString() : null,
+})
 
 interface EquipmentPageProps {
   params: Promise<{ id: string }>
@@ -58,10 +65,13 @@ export default async function EquipmentPage({ params }: EquipmentPageProps) {
   const canManageMaintenance = can(ctx.role, 'maintenance', 'create')
   const canCreateTask = can(ctx.role, 'activity', 'create')
 
+  const canReadTasks = can(ctx.role, 'activity', 'read')
   const { items, totalCost } = await listMaintenanceForEquipment(ctx, id)
-  const members = canManageMaintenance ? await listOrgMembers(ctx) : []
+  // Membres requis pour la maintenance et/ou le formulaire de tâches.
+  const members = canManageMaintenance || canCreateTask ? await listOrgMembers(ctx) : []
   const locations = canEdit ? await listLocationsForClient(ctx, eq.clientId) : []
   const documents = await listEquipmentDocuments(ctx, id)
+  const tasks = canReadTasks ? await listTasksForEquipment(ctx, id) : []
   const storageConfigured = isStorageConfigured()
 
   const editView = {
@@ -179,6 +189,16 @@ export default async function EquipmentPage({ params }: EquipmentPageProps) {
           currentMemberId={ctx.memberId}
           canManage={canManageMaintenance}
         />
+
+        {canReadTasks && (
+          <TasksSection
+            tasks={tasks.map(taskToView)}
+            canEdit={canCreateTask}
+            currentMemberId={ctx.memberId}
+            members={members}
+            locked={{ equipmentId: eq.id, clientId: eq.clientId }}
+          />
+        )}
 
         <EquipmentDocumentsSection
           equipmentId={eq.id}

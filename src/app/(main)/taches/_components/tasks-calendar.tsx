@@ -6,6 +6,7 @@ import { CalendarPlus, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { ClientOption } from '@/services/crm/client'
 import type { DealOption } from '@/services/crm/deal'
+import type { EquipmentOption } from '@/services/crm/equipment'
 import type { SiteOption } from '@/services/crm/site'
 import type { OrgMemberOption } from '@/services/org/members'
 import { TaskFormDialog } from './task-form-dialog'
@@ -19,6 +20,7 @@ interface TasksCalendarProps {
   clients: ClientOption[]
   deals: DealOption[]
   sites: SiteOption[]
+  equipments: EquipmentOption[]
 }
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
@@ -45,6 +47,7 @@ export const TasksCalendar = ({
   clients,
   deals,
   sites,
+  equipments,
 }: TasksCalendarProps) => {
   const todayKey = keyOf(new Date())
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()))
@@ -234,6 +237,7 @@ export const TasksCalendar = ({
           clients={clients}
           deals={deals}
           sites={sites}
+          equipments={equipments}
         />
       )}
     </div>

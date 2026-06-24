@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button'
 import type { ClientOption } from '@/services/crm/client'
 import type { DealOption } from '@/services/crm/deal'
+import type { EquipmentOption } from '@/services/crm/equipment'
 import type { SiteOption } from '@/services/crm/site'
 import type { OrgMemberOption } from '@/services/org/members'
 import { deleteTaskAction } from '../../actions'
@@ -29,6 +30,7 @@ interface TaskDetailActionsProps {
   clients: ClientOption[]
   deals: DealOption[]
   sites: SiteOption[]
+  equipments: EquipmentOption[]
   currentMemberId: string
   canEdit: boolean
   canDelete: boolean
@@ -40,6 +42,7 @@ export const TaskDetailActions = ({
   clients,
   deals,
   sites,
+  equipments,
   currentMemberId,
   canEdit,
   canDelete,
@@ -103,6 +106,7 @@ export const TaskDetailActions = ({
           clients={clients}
           deals={deals}
           sites={sites}
+          equipments={equipments}
           task={task}
         />
       )}

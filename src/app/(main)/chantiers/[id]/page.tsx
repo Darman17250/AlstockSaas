@@ -22,12 +22,14 @@ import { getSite } from '@/services/crm/site'
 import { listSiteDocuments } from '@/services/crm/site-document'
 import { listSiteMessages } from '@/services/crm/site-message'
 import { listSiteTeam } from '@/services/crm/site-member'
+import { listSiteReports } from '@/services/crm/site-report'
 import { listTasksForSite, type TaskItem } from '@/services/crm/task'
 import { listOrgMembers } from '@/services/org/members'
 import { TasksSection } from '../../taches/_components/tasks-section'
 import { DocumentsSection } from './_components/documents-section'
 import { SiteActions } from './_components/site-actions'
 import { SiteChat } from './_components/site-chat'
+import { SiteReportsSection } from './_components/site-reports-section'
 import { SiteStats } from './_components/site-stats'
 import { SiteTeamSection } from './_components/site-team-section'
 
@@ -76,6 +78,8 @@ export default async function SitePage({ params }: SitePageProps) {
   const documents = await listSiteDocuments(ctx, id)
   const team = await listSiteTeam(ctx, id)
   const messages = await listSiteMessages(ctx, id)
+  const canReadReports = can(ctx.role, 'report', 'read')
+  const reports = canReadReports ? await listSiteReports(ctx, id) : []
   const storageConfigured = isStorageConfigured()
   const canReadTasks = can(ctx.role, 'activity', 'read')
   const canEditTasks = can(ctx.role, 'activity', 'create')
@@ -129,6 +133,7 @@ export default async function SitePage({ params }: SitePageProps) {
           messagesCount={messages.length}
           documentsCount={documents.length}
           teamCount={team.length}
+          reportsCount={reports.length}
         />
 
         <section className='grid gap-3 rounded-lg border p-5 sm:grid-cols-2'>
@@ -164,6 +169,17 @@ export default async function SitePage({ params }: SitePageProps) {
             <h2 className='font-semibold'>Description</h2>
             <p className='whitespace-pre-wrap text-sm text-muted-foreground'>{data.description}</p>
           </section>
+        )}
+
+        {canReadReports && (
+          <SiteReportsSection
+            siteId={data.id}
+            reports={reports}
+            canCreate={can(ctx.role, 'report', 'create')}
+            canUpdate={can(ctx.role, 'report', 'update')}
+            canDelete={can(ctx.role, 'report', 'delete')}
+            storageConfigured={storageConfigured}
+          />
         )}
 
         <SiteTeamSection siteId={data.id} team={team} members={teamMembers} canEdit={canEdit} />

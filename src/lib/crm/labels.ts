@@ -71,6 +71,17 @@ export const SITE_STATUS_LABELS: Record<string, string> = {
 /** Ordre des statuts de chantier (filtre + Select formulaire). */
 export const SITE_STATUSES = ['prepa', 'en_cours', 'en_pause', 'termine', 'annule'] as const
 
+/** Météo d'un rapport de chantier. */
+export const WEATHER_LABELS: Record<string, string> = {
+  ensoleille: 'Ensoleillé',
+  nuageux: 'Nuageux',
+  pluvieux: 'Pluvieux',
+  neigeux: 'Neigeux',
+  venteux: 'Venteux',
+}
+
+export const WEATHER_VALUES = ['ensoleille', 'nuageux', 'pluvieux', 'neigeux', 'venteux'] as const
+
 /** Types de localisation client (parc d'équipements). */
 export const LOCATION_TYPE_LABELS: Record<string, string> = {
   maison: 'Maison',

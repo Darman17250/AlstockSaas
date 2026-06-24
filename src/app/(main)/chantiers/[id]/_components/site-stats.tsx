@@ -1,10 +1,10 @@
 import {
   CheckSquare,
+  ClipboardList,
   Clock,
   FileText,
   type LucideIcon,
   MessagesSquare,
-  TrendingUp,
   Users,
 } from 'lucide-react'
 
@@ -14,6 +14,7 @@ interface SiteStatsProps {
   messagesCount: number
   documentsCount: number
   teamCount: number
+  reportsCount: number
 }
 
 interface StatCard {
@@ -35,6 +36,7 @@ export const SiteStats = ({
   messagesCount,
   documentsCount,
   teamCount,
+  reportsCount,
 }: SiteStatsProps) => {
   const taskPct = tasksTotal > 0 ? Math.round((tasksDone / tasksTotal) * 100) : 0
 
@@ -45,10 +47,10 @@ export const SiteStats = ({
       value: `${tasksDone}/${tasksTotal}`,
       hint: tasksTotal > 0 ? `${taskPct}% terminées` : 'Aucune tâche',
     },
+    { icon: ClipboardList, label: 'Rapports', value: String(reportsCount) },
     { icon: Users, label: 'Équipe', value: String(teamCount), hint: 'salariés assignés' },
     { icon: MessagesSquare, label: 'Messages', value: String(messagesCount) },
     { icon: FileText, label: 'Documents', value: String(documentsCount) },
-    { icon: TrendingUp, label: 'Avancement', value: '—', soon: true },
     { icon: Clock, label: 'Heures pointées', value: '—', soon: true },
   ]
 

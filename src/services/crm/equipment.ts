@@ -29,6 +29,24 @@ const assertLocationInOrg = async (ctx: OrgContext, locationId: string): Promise
   return row.clientId
 }
 
+export interface EquipmentOption {
+  id: string
+  name: string
+  clientName: string
+}
+
+/** Équipements de l'org pour un sélecteur (ex. rattacher une tâche). */
+export const listEquipmentOptions = async (ctx: OrgContext): Promise<EquipmentOption[]> => {
+  requirePermission(ctx, 'equipment', 'read')
+
+  return db
+    .select({ id: equipment.id, name: equipment.name, clientName: client.name })
+    .from(equipment)
+    .innerJoin(client, eq(equipment.clientId, client.id))
+    .where(and(eq(equipment.organizationId, ctx.organizationId), isNull(equipment.deletedAt)))
+    .orderBy(asc(equipment.name))
+}
+
 export interface EquipmentItem {
   id: string
   name: string

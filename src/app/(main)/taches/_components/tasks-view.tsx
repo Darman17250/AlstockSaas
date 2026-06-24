@@ -6,6 +6,7 @@ import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { ClientOption } from '@/services/crm/client'
 import type { DealOption } from '@/services/crm/deal'
+import type { EquipmentOption } from '@/services/crm/equipment'
 import type { SiteOption } from '@/services/crm/site'
 import type { OrgMemberOption } from '@/services/org/members'
 import { TaskFormDialog } from './task-form-dialog'
@@ -20,6 +21,7 @@ interface TasksViewProps {
   clients: ClientOption[]
   deals: DealOption[]
   sites: SiteOption[]
+  equipments: EquipmentOption[]
 }
 
 const startOfToday = () => {
@@ -67,6 +69,7 @@ export const TasksView = ({
   clients,
   deals,
   sites,
+  equipments,
 }: TasksViewProps) => {
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<TaskView | null>(null)
@@ -131,6 +134,7 @@ export const TasksView = ({
           clients={clients}
           deals={deals}
           sites={sites}
+          equipments={equipments}
         />
       )}
     </div>

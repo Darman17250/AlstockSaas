@@ -37,6 +37,7 @@ import { TASK_STATUS_LABELS } from '@/lib/crm/labels'
 import { taskStatusEnum } from '@/database/schema'
 import type { ClientOption } from '@/services/crm/client'
 import type { DealOption } from '@/services/crm/deal'
+import type { EquipmentOption } from '@/services/crm/equipment'
 import type { SiteOption } from '@/services/crm/site'
 import type { OrgMemberOption } from '@/services/org/members'
 import { createTaskAction, updateTaskAction } from '../actions'
@@ -51,11 +52,12 @@ export interface TaskFormDialogProps {
   members: OrgMemberOption[]
   currentMemberId: string
   /** Liens fixes (contexte fiche) : la liaison est imposée et non éditable. */
-  locked?: { clientId?: string; dealId?: string; siteId?: string }
+  locked?: { clientId?: string; dealId?: string; siteId?: string; equipmentId?: string }
   /** Options proposées dans les sélecteurs de liaison (vue globale). */
   clients?: ClientOption[]
   deals?: DealOption[]
   sites?: SiteOption[]
+  equipments?: EquipmentOption[]
   task?: TaskView | null
   /** Échéance pré-remplie à la création (ex. clic sur un jour du calendrier). */
   defaultDueDate?: string
@@ -71,6 +73,7 @@ export const TaskFormDialog = ({
   clients,
   deals,
   sites,
+  equipments,
   task,
   defaultDueDate,
   onSaved,
@@ -84,6 +87,7 @@ export const TaskFormDialog = ({
   const [clientId, setClientId] = useState<string | null>(task?.clientId ?? null)
   const [dealId, setDealId] = useState<string | null>(task?.dealId ?? null)
   const [siteId, setSiteId] = useState<string>(task?.siteId ?? NONE)
+  const [equipmentId, setEquipmentId] = useState<string | null>(task?.equipmentId ?? null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -97,17 +101,24 @@ export const TaskFormDialog = ({
     setClientId(task?.clientId ?? null)
     setDealId(task?.dealId ?? null)
     setSiteId(task?.siteId ?? NONE)
+    setEquipmentId(task?.equipmentId ?? null)
     setError(null)
   }, [open, task, currentMemberId])
 
   const clientItems: Item[] = (clients ?? []).map((c) => ({ value: c.id, label: c.name }))
   const dealItems: Item[] = (deals ?? []).map((d) => ({ value: d.id, label: d.title }))
+  const equipmentItems: Item[] = (equipments ?? []).map((e) => ({
+    value: e.id,
+    label: `${e.name} · ${e.clientName}`,
+  }))
   const selectedClient = clientItems.find((i) => i.value === clientId) ?? null
   const selectedDeal = dealItems.find((i) => i.value === dealId) ?? null
+  const selectedEquipment = equipmentItems.find((i) => i.value === equipmentId) ?? null
 
   const showClient = !locked?.clientId && clients
   const showDeal = !locked?.dealId && deals
   const showSite = !locked?.siteId && sites
+  const showEquipment = !locked?.equipmentId && equipments
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -124,6 +135,7 @@ export const TaskFormDialog = ({
       clientId: locked?.clientId ?? clientId ?? undefined,
       dealId: locked?.dealId ?? dealId ?? undefined,
       siteId: locked?.siteId ?? (siteId !== NONE ? siteId : undefined),
+      equipmentId: locked?.equipmentId ?? equipmentId ?? undefined,
     }
 
     const res = task ? await updateTaskAction(task.id, payload) : await createTaskAction(payload)
@@ -145,7 +157,7 @@ export const TaskFormDialog = ({
         <DialogHeader>
           <DialogTitle>{task ? 'Modifier la tâche' : 'Nouvelle tâche'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className='flex min-h-0 flex-1 flex-col'>
           <DialogPanel className='space-y-4'>
             <div className='space-y-2'>
               <Label htmlFor='subject'>Intitulé</Label>
@@ -329,6 +341,30 @@ export const TaskFormDialog = ({
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+
+            {showEquipment && equipmentItems.length > 0 && (
+              <div className='space-y-2'>
+                <Label>Équipement</Label>
+                <Combobox
+                  items={equipmentItems}
+                  value={selectedEquipment}
+                  onValueChange={(item: Item | null) => setEquipmentId(item?.value ?? null)}
+                  isItemEqualToValue={(a, b) => a?.value === b?.value}
+                >
+                  <ComboboxInput placeholder='Rechercher un équipement…' showClear />
+                  <ComboboxPopup>
+                    <ComboboxEmpty>Aucun équipement trouvé.</ComboboxEmpty>
+                    <ComboboxList>
+                      {(item: Item) => (
+                        <ComboboxItem key={item.value} value={item}>
+                          {item.label}
+                        </ComboboxItem>
+                      )}
+                    </ComboboxList>
+                  </ComboboxPopup>
+                </Combobox>
               </div>
             )}
 

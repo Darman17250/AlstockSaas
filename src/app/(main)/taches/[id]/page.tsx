@@ -7,6 +7,7 @@ import {
   CheckSquare,
   ChevronLeft,
   HardHat,
+  Package,
   User,
   Users,
 } from 'lucide-react'
@@ -19,6 +20,7 @@ import { TASK_STATUS_LABELS } from '@/lib/crm/labels'
 import { isStorageConfigured } from '@/lib/supabase-storage'
 import { listClientOptions } from '@/services/crm/client'
 import { listDealOptions } from '@/services/crm/deal'
+import { listEquipmentOptions } from '@/services/crm/equipment'
 import { listSiteOptions } from '@/services/crm/site'
 import { getTask } from '@/services/crm/task'
 import { listTaskDocuments } from '@/services/crm/task-document'
@@ -62,14 +64,16 @@ export default async function TaskPage({ params }: TaskPageProps) {
   const documents = await listTaskDocuments(ctx, id)
   const storageConfigured = isStorageConfigured()
 
-  const [members, clients, deals, sites] = canEdit
+  const canReadEquipment = can(ctx.role, 'equipment', 'read')
+  const [members, clients, deals, sites, equipments] = canEdit
     ? await Promise.all([
         listOrgMembers(ctx),
         listClientOptions(ctx),
         listDealOptions(ctx),
         listSiteOptions(ctx),
+        canReadEquipment ? listEquipmentOptions(ctx) : Promise.resolve([]),
       ])
-    : [[], [], [], []]
+    : [[], [], [], [], []]
 
   const view = {
     ...task,
@@ -105,6 +109,7 @@ export default async function TaskPage({ params }: TaskPageProps) {
           clients={clients}
           deals={deals}
           sites={sites}
+          equipments={equipments}
           currentMemberId={ctx.memberId}
           canEdit={canEdit}
           canDelete={canDelete}
@@ -144,6 +149,13 @@ export default async function TaskPage({ params }: TaskPageProps) {
             <Line icon={HardHat}>
               <Link href={`/chantiers/${task.siteId}`} className='hover:underline'>
                 {task.siteName}
+              </Link>
+            </Line>
+          )}
+          {task.equipmentId && task.equipmentName && (
+            <Line icon={Package}>
+              <Link href={`/equipements/${task.equipmentId}`} className='hover:underline'>
+                {task.equipmentName}
               </Link>
             </Line>
           )}

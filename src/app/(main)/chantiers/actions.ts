@@ -13,8 +13,15 @@ import { StorageNotConfiguredError } from '@/lib/supabase-storage'
 import { deleteSiteDocument } from '@/services/crm/site-document'
 import { assignSiteMember, removeSiteMember } from '@/services/crm/site-member'
 import { deleteSiteMessage } from '@/services/crm/site-message'
+import {
+  createSiteReport,
+  softDeleteSiteReport,
+  updateSiteReport,
+} from '@/services/crm/site-report'
+import { deleteSiteReportPhoto } from '@/services/crm/site-report-photo'
 import { createSite, softDeleteSite, updateSite } from '@/services/crm/site'
 import { siteCreateSchema, siteUpdateSchema } from '@/validation/site'
+import { siteReportCreateSchema, siteReportUpdateSchema } from '@/validation/site-report'
 
 /**
  * Façade fine : récupère le contexte org, valide l'entrée (Zod), appelle un
@@ -121,6 +128,64 @@ export const deleteSiteMessageAction = async (messageId: string): Promise<Action
   try {
     const ctx = await requireOrgContext()
     await deleteSiteMessage(ctx, messageId)
+    return { ok: true, data: undefined }
+  } catch (e) {
+    return { ok: false, error: toError(e) }
+  }
+}
+
+export const createSiteReportAction = async (
+  input: unknown
+): Promise<ActionResult<{ id: string }>> => {
+  try {
+    const ctx = await requireOrgContext()
+    const data = siteReportCreateSchema.parse(input)
+    const created = await createSiteReport(ctx, data)
+    revalidatePath(`/chantiers/${data.siteId}`)
+    return { ok: true, data: { id: created.id } }
+  } catch (e) {
+    return { ok: false, error: toError(e) }
+  }
+}
+
+export const updateSiteReportAction = async (
+  id: string,
+  siteId: string,
+  input: unknown
+): Promise<ActionResult> => {
+  try {
+    const ctx = await requireOrgContext()
+    const data = siteReportUpdateSchema.parse(input)
+    await updateSiteReport(ctx, id, data)
+    revalidatePath(`/chantiers/${siteId}`)
+    return { ok: true, data: undefined }
+  } catch (e) {
+    return { ok: false, error: toError(e) }
+  }
+}
+
+export const deleteSiteReportAction = async (
+  id: string,
+  siteId: string
+): Promise<ActionResult> => {
+  try {
+    const ctx = await requireOrgContext()
+    await softDeleteSiteReport(ctx, id)
+    revalidatePath(`/chantiers/${siteId}`)
+    return { ok: true, data: undefined }
+  } catch (e) {
+    return { ok: false, error: toError(e) }
+  }
+}
+
+export const deleteSiteReportPhotoAction = async (
+  photoId: string,
+  siteId: string
+): Promise<ActionResult> => {
+  try {
+    const ctx = await requireOrgContext()
+    await deleteSiteReportPhoto(ctx, photoId)
+    revalidatePath(`/chantiers/${siteId}`)
     return { ok: true, data: undefined }
   } catch (e) {
     return { ok: false, error: toError(e) }

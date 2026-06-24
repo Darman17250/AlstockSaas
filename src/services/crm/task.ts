@@ -139,6 +139,8 @@ export interface TaskItem {
   dealTitle: string | null
   siteId: string | null
   siteName: string | null
+  equipmentId: string | null
+  equipmentName: string | null
   coAssignees: TaskCoAssignee[]
 }
 
@@ -214,6 +216,8 @@ const taskSelect = {
   dealTitle: deal.title,
   siteId: activity.siteId,
   siteName: site.name,
+  equipmentId: activity.equipmentId,
+  equipmentName: equipment.name,
 }
 
 /** Base de requête tâches, jointe aux libellés des liens. */
@@ -226,6 +230,7 @@ const taskQuery = () =>
     .leftJoin(client, eq(activity.clientId, client.id))
     .leftJoin(deal, eq(activity.dealId, deal.id))
     .leftJoin(site, eq(activity.siteId, site.id))
+    .leftJoin(equipment, eq(activity.equipmentId, equipment.id))
 
 /** Tâches assignées à l'utilisateur courant (vue « Mes tâches »), hors annulées. */
 export const listMyTasks = async (ctx: OrgContext): Promise<TaskItem[]> => {
@@ -308,6 +313,23 @@ export const listTasksForSite = async (ctx: OrgContext, siteId: string): Promise
         eq(activity.organizationId, ctx.organizationId),
         eq(activity.type, TASK_TYPE),
         eq(activity.siteId, siteId)
+      )
+    )
+    .orderBy(asc(activity.dueDate), desc(activity.createdAt))
+  return attachCoAssignees(ctx, rows)
+}
+
+export const listTasksForEquipment = async (
+  ctx: OrgContext,
+  equipmentId: string
+): Promise<TaskItem[]> => {
+  requirePermission(ctx, 'activity', 'read')
+  const rows = await taskQuery()
+    .where(
+      and(
+        eq(activity.organizationId, ctx.organizationId),
+        eq(activity.type, TASK_TYPE),
+        eq(activity.equipmentId, equipmentId)
       )
     )
     .orderBy(asc(activity.dueDate), desc(activity.createdAt))

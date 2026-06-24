@@ -4,6 +4,7 @@ import { requireOrgContext } from '@/lib/auth/org-context'
 import { can } from '@/lib/auth/permissions'
 import { listClientOptions } from '@/services/crm/client'
 import { listDealOptions } from '@/services/crm/deal'
+import { listEquipmentOptions } from '@/services/crm/equipment'
 import { listSiteOptions } from '@/services/crm/site'
 import { listMyTasks, listTeamTasks, type TaskItem } from '@/services/crm/task'
 import { listOrgMembers } from '@/services/org/members'
@@ -41,14 +42,16 @@ export default async function TachesPage({ searchParams }: TachesPageProps) {
   const tabHref = (key: TabKey) => (key === 'mine' ? '/taches' : `/taches?tab=${key}`)
 
   // Options pour le formulaire (uniquement si l'utilisateur peut éditer).
-  const [members, clients, deals, sites] = canEdit
+  const canReadEquipment = can(ctx.role, 'equipment', 'read')
+  const [members, clients, deals, sites, equipments] = canEdit
     ? await Promise.all([
         listOrgMembers(ctx),
         listClientOptions(ctx),
         listDealOptions(ctx),
         listSiteOptions(ctx),
+        canReadEquipment ? listEquipmentOptions(ctx) : Promise.resolve([]),
       ])
-    : [await listOrgMembers(ctx), [], [], []]
+    : [await listOrgMembers(ctx), [], [], [], []]
 
   let tasks: TaskItem[]
   if (tab === 'team') {
@@ -127,6 +130,7 @@ export default async function TachesPage({ searchParams }: TachesPageProps) {
           clients={clients}
           deals={deals}
           sites={sites}
+          equipments={equipments}
         />
       ) : (
         <TasksView
@@ -138,6 +142,7 @@ export default async function TachesPage({ searchParams }: TachesPageProps) {
           clients={clients}
           deals={deals}
           sites={sites}
+          equipments={equipments}
         />
       )}
     </div>
