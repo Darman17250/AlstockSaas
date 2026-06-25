@@ -33,6 +33,8 @@ export const statement = {
   location: crud,
   equipment: crud,
   maintenance: crud,
+  depot: crud,
+  depotMaintenance: crud,
 } as const
 
 export const ac = createAccessControl(statement)
@@ -48,6 +50,8 @@ const fullBusiness = {
   location: [...crud],
   equipment: [...crud],
   maintenance: [...crud],
+  depot: [...crud],
+  depotMaintenance: [...crud],
 }
 
 // Rôles natifs étendus avec l'accès métier complet.
@@ -67,6 +71,8 @@ export const commercial = ac.newRole({
   location: [...crud],
   equipment: [...crud],
   maintenance: ['read'],
+  depot: ['read'],
+  depotMaintenance: ['read'],
 })
 
 export const conducteur = ac.newRole({
@@ -80,6 +86,8 @@ export const conducteur = ac.newRole({
   location: ['read'],
   equipment: ['read'],
   maintenance: [...crud],
+  depot: [...crud],
+  depotMaintenance: [...crud],
 })
 
 export const terrain = ac.newRole({
@@ -93,6 +101,8 @@ export const terrain = ac.newRole({
   location: ['read'],
   equipment: ['read'],
   maintenance: ['create', 'read', 'update'],
+  depot: ['read'],
+  depotMaintenance: ['create', 'read', 'update'],
 })
 
 export const roles = { owner, admin, member, commercial, conducteur, terrain }
@@ -109,6 +119,8 @@ export type BusinessResource =
   | 'location'
   | 'equipment'
   | 'maintenance'
+  | 'depot'
+  | 'depotMaintenance'
 export type Action = (typeof crud)[number]
 
 /** Liste des rôles assignables à l'invitation (hors `owner`, réservé au créateur). */

@@ -2,7 +2,7 @@
 
 > **But de ce document** : permettre à une nouvelle session Claude de reprendre le développement **sans re-explorer le repo**. À lire en premier, avec `CLAUDE.md` et `docs/cadrage-crm-chantiers-mvp.md`. À tenir à jour à la fin de chaque feature.
 
-Dernière mise à jour : fin **Rapports de chantier** (saisie terrain : météo/effectif/avancement/aléas + photos, unicité 1/jour) et **lien tâche ↔ équipement** (sélecteur + sections croisées). Avant : Chantiers (+ équipe, chat, stats) et tâches étoffées (responsable + co-assignés, pièces jointes, page détail). `typecheck`/`lint` ✅. Voir §10/§12. Prochaine étape : **Pointage des heures** (§13).
+Dernière mise à jour : fin **Dépôts & véhicules** (entrepôts/ateliers/véhicules dans une table unique `depot` + champs véhicule nullables ; entretien daté **et** au km ; documents avec catégorie + échéance ; tâche de rappel via `activity.depotId`). `typecheck`/`lint` ✅, **migration 0009 appliquée**. Voir §14. Avant : Rapports de chantier (§12) et lien tâche ↔ équipement. Prochaine étape : **Pointage des heures** (§13).
 
 ---
 
@@ -25,6 +25,7 @@ Dernière mise à jour : fin **Rapports de chantier** (saisie terrain : météo/
 | ↳ Extension Tâches : responsable + co-assignés · pièces jointes (images/docs) · page détail | ✅ terminée & validée |
 | ↳ Lien tâche ↔ équipement (sélecteur + sections croisées) | ✅ terminée |
 | **Rapports de chantier** (saisie terrain météo/effectif/avancement/aléas + photos) | ✅ **terminée** (voir §12) |
+| **Dépôts & véhicules** (entrepôts/ateliers/véhicules · entretien km/dates · documents échéances · tâches) | ✅ **terminée** (`typecheck`/`lint` ✅, migration 0009 appliquée — voir §14) |
 | Pointage · Dashboards | ⏳ à faire |
 
 > ⚠️ Numérotation des features **non fiable** dans le repo : certains commentaires de F2 parlent de « conversion F5 » pour les chantiers. Se référer à l'**ordre nommé** de `CLAUDE.md §10` (Affaires → **Activités & tâches** → Chantiers → Rapports → Pointage → Dashboards), pas aux numéros.
@@ -308,3 +309,37 @@ Feature suivante (CLAUDE.md §10 : … Rapports → **Pointage** → Dashboards)
 - **Façade** actions ; **UI mobile-first terrain** sur la fiche chantier (pointer ses heures du jour) + récap conducteur.
 
 **Permissions `timeEntry`** (déjà dans `permissions.ts`) : admin/conducteur complet · terrain create/read/update (ses pointages) · commercial lecture. Le ciblage terrain « chantiers assignés » peut s'appuyer sur `site_member`.
+
+---
+
+## 14. Dépôts & véhicules — livré (`typecheck`/`lint` ✅, migration 0009 appliquée)
+
+Module calqué **à l'identique** sur le Parc d'équipements. Un **dépôt** appartient à l'**organisation** (≠ `client_location`). Un **véhicule = dépôt mobile** : table unique `depot` + champs véhicule nullables (pattern société/particulier). **Hors périmètre : aucun stock** (juste les emplacements). Cadrage : `docs/cadrage-crm-chantiers-mvp.md` → « Extension v1.2 ».
+
+### Migration 0009 — appliquée
+`migrations/0009_last_starbolt.sql` : 4 enums (`depot_type`, `depot_maintenance_type`, `vehicle_fuel_type`, `depot_document_category`) + 3 tables (`depot`, `depot_maintenance`, `depot_document`) + colonne `activity.depotId` + index/FK. **Appliquée** (`bun run ./scripts/migrate.ts`).
+
+### Schéma (`src/database/schema.ts`)
+- Enums + tables `depot` (soft-delete, index `organizationId`+`type`), `depot_maintenance` (soft-delete, `provider`/`mileage`/`nextDueMileage` en plus du modèle équipement), `depot_document` (hard-delete + `category`/`expiresAt`). `activity.depotId` (set null) + index. Relations `depot`/`depotMaintenance`/`depotDocument`.
+
+### Permissions (`src/lib/auth/permissions.ts`)
+- `depot` : admin/conducteur complet · commercial/terrain lecture. `depotMaintenance` : admin/conducteur complet · terrain create/read/update · commercial lecture. Documents dépôt suivent `depot`. Libellés FR (`DEPOT_TYPE_LABELS`, `DEPOT_TYPES`, `DEPOT_MAINTENANCE_TYPE_LABELS`, `FUEL_TYPE_LABELS`, `DEPOT_DOCUMENT_CATEGORY_LABELS`) dans `src/lib/crm/labels.ts`.
+
+### Validation / Services / Façade
+- `src/validation/{depot,depot-maintenance,depot-document}.ts` (réutilise les constantes MIME de `deal-document`).
+- `src/services/crm/depot.ts` (`listDepots` filtre type+recherche+pagination, `getDepot`, CRUD soft-delete, `listDepotOptions`, **`recalcDepotNextMaintenance`** = min des `nextDueDate`). `depot-maintenance.ts` (CRUD ; à chaque écriture : recalcul `nextMaintenanceDate` + remontée `depot.mileage` si km supérieur). `depot-document.ts` (upload/list/download/delete, perms `depot`, chemin `org/depots/<id>/…`).
+- `src/app/(main)/depots/actions.ts` : CRUD dépôt + entretien + `createDepotMaintenanceReminderTaskAction` (lie `activity.depotId`) + `deleteDepotDocumentAction`. Routes `POST /api/depots/[id]/documents` (parse `category`/`expiresAt` du FormData) + `GET /api/depots/documents/[docId]`.
+
+### UI (FR, mobile-first, Base UI)
+- Sidebar : entrée **« Dépôts »** (icône `Warehouse`, gardée `can(role,'depot','read')`). `proxy.ts` : `/depots/:path*` ajouté.
+- `/depots` liste (filtre type + recherche + pagination, badges véhicule/immat, indicateur entretien **En retard/Bientôt** ≤ 30 j). `/depots/nouveau` + `/depots/[id]/modifier` : `DepotForm` (bloc **Véhicule** affiché seulement si `type=vehicule`). `/depots/[id]` fiche 360 (infos + bloc véhicule + section Entretien CRUD + prochaine échéance + bouton rappel + Documents avec catégorie/expiration + Tâches via `TasksSection locked.depotId`). `loading.tsx` + `not-found.tsx`.
+
+### Extension transverse Tâches (support `depotId`)
+- `activity.depotId` exposé comme l'a été `equipmentId` : `validation/task.ts` (+`depotId`), `services/crm/task.ts` (assert + `toColumns` + `taskSelect`/jointure `depot` + `TaskItem.depotId/depotName` + `listTasksForDepot`), `tasks-section`/`task-form-dialog` (`locked.depotId` + sélecteur `depots` optionnel), `task-row` (lien dépôt, icône `Warehouse`).
+
+### ⚠️ Pièges
+- `DepotForm` : narrower le résultat **par mode** (`if (mode==='create')`) — le `ActionResult` de create (`data:{id}`) et d'update (`data:undefined`) forment une union, `res.data.id` direct échoue en TS18048.
+- Champs véhicule nettoyés à `null` côté service quand `type ≠ vehicule` (cohérence).
+
+### Reste à faire (validation utilisateur)
+Test navigateur : création entrepôt + véhicule, entretien km/date → recalcul prochaine échéance, upload doc assurance avec date d'expiration → badge « Expire le », tâche de rappel) + **anti-fuite inter-org** sur `/depots`.

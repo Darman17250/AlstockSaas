@@ -30,6 +30,7 @@ export const config = {
     '/chantiers/:path*',
     '/taches/:path*',
     '/equipements/:path*',
+    '/depots/:path*',
     '/equipe/:path*',
   ],
 }

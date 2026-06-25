@@ -377,6 +377,39 @@ export const maintenanceTypeEnum = pgEnum('maintenance_type', [
   'controle',
 ])
 
+// Dépôts & véhicules : emplacements appartenant à l'organisation (entrepôt,
+// atelier, véhicule…), distincts des `client_location` (qui sont chez le client).
+export const depotTypeEnum = pgEnum('depot_type', [
+  'entrepot',
+  'atelier',
+  'vehicule',
+  'autre',
+])
+export const depotMaintenanceTypeEnum = pgEnum('depot_maintenance_type', [
+  'revision',
+  'vidange',
+  'pneus',
+  'controle_technique',
+  'reparation',
+  'carrosserie',
+  'autre',
+])
+export const vehicleFuelTypeEnum = pgEnum('vehicle_fuel_type', [
+  'essence',
+  'diesel',
+  'gpl',
+  'electrique',
+  'hybride',
+  'autre',
+])
+export const depotDocumentCategoryEnum = pgEnum('depot_document_category', [
+  'carte_grise',
+  'assurance',
+  'controle_technique',
+  'facture',
+  'autre',
+])
+
 // ============================================================================
 // Tables métier — toutes portent organizationId (non null, indexé) pour le
 // cloisonnement multi-tenant. Soft-delete (deletedAt) sur les entités à valeur.
@@ -576,6 +609,114 @@ export const equipmentDocument = pgTable(
   (table) => [
     index('equipment_document_organizationId_idx').on(table.organizationId),
     index('equipment_document_equipmentId_idx').on(table.equipmentId),
+  ]
+)
+
+// ============================================================================
+// Dépôts & véhicules : emplacements de l'organisation (entrepôt, atelier,
+// véhicule…). Un véhicule = même table avec un type + champs véhicule nullables
+// (pattern société/particulier de `client`). Pas de stock/contenu (hors périmètre).
+// ============================================================================
+
+export const depot = pgTable(
+  'depot',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    type: depotTypeEnum('type').notNull(),
+    name: text('name').notNull(),
+    addressLine1: text('address_line1'),
+    addressLine2: text('address_line2'),
+    postalCode: text('postal_code'),
+    city: text('city'),
+    country: text('country').default('FR').notNull(),
+    responsibleId: text('responsible_id').references(() => member.id, { onDelete: 'set null' }),
+    notes: text('notes'),
+    // Champs véhicule (nullables, renseignés uniquement si type = 'vehicule').
+    registrationNumber: text('registration_number'),
+    brand: text('brand'),
+    model: text('model'),
+    year: integer('year'),
+    fuelType: vehicleFuelTypeEnum('fuel_type'),
+    vin: text('vin'),
+    firstRegistrationDate: date('first_registration_date'),
+    mileage: integer('mileage'),
+    // Recalculé par le service depuis le dernier entretien (nextDueDate).
+    nextMaintenanceDate: date('next_maintenance_date'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => [
+    index('depot_organizationId_idx').on(table.organizationId),
+    index('depot_type_idx').on(table.type),
+  ]
+)
+
+export const depotMaintenance = pgTable(
+  'depot_maintenance',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    depotId: uuid('depot_id')
+      .notNull()
+      .references(() => depot.id, { onDelete: 'cascade' }),
+    type: depotMaintenanceTypeEnum('type').default('revision').notNull(),
+    performedAt: date('performed_at').notNull(),
+    performedById: text('performed_by_id').references(() => member.id, { onDelete: 'set null' }),
+    provider: text('provider'),
+    mileage: integer('mileage'),
+    cost: decimal('cost', { precision: 10, scale: 2 }),
+    description: text('description'),
+    nextDueDate: date('next_due_date'),
+    nextDueMileage: integer('next_due_mileage'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => [
+    index('depot_maintenance_organizationId_idx').on(table.organizationId),
+    index('depot_maintenance_depotId_idx').on(table.depotId),
+  ]
+)
+
+export const depotDocument = pgTable(
+  'depot_document',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    depotId: uuid('depot_id')
+      .notNull()
+      .references(() => depot.id, { onDelete: 'cascade' }),
+    category: depotDocumentCategoryEnum('category'),
+    storagePath: text('storage_path').notNull(),
+    fileName: text('file_name').notNull(),
+    mimeType: text('mime_type'),
+    size: integer('size'),
+    // Échéance (assurance, contrôle technique…) pour les rappels.
+    expiresAt: date('expires_at'),
+    uploadedById: text('uploaded_by_id').references(() => member.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('depot_document_organizationId_idx').on(table.organizationId),
+    index('depot_document_depotId_idx').on(table.depotId),
   ]
 )
 
@@ -831,6 +972,7 @@ export const activity = pgTable(
     dealId: uuid('deal_id').references(() => deal.id, { onDelete: 'set null' }),
     siteId: uuid('site_id').references(() => site.id, { onDelete: 'set null' }),
     equipmentId: uuid('equipment_id').references(() => equipment.id, { onDelete: 'set null' }),
+    depotId: uuid('depot_id').references(() => depot.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
@@ -843,6 +985,7 @@ export const activity = pgTable(
     index('activity_dueDate_idx').on(table.dueDate),
     index('activity_status_idx').on(table.status),
     index('activity_equipmentId_idx').on(table.equipmentId),
+    index('activity_depotId_idx').on(table.depotId),
   ]
 )
 
@@ -1064,6 +1207,32 @@ export const equipmentDocumentRelations = relations(equipmentDocument, ({ one })
   }),
   uploadedBy: one(member, {
     fields: [equipmentDocument.uploadedById],
+    references: [member.id],
+  }),
+}))
+
+export const depotRelations = relations(depot, ({ one, many }) => ({
+  organization: one(organization, {
+    fields: [depot.organizationId],
+    references: [organization.id],
+  }),
+  responsible: one(member, { fields: [depot.responsibleId], references: [member.id] }),
+  maintenances: many(depotMaintenance),
+  documents: many(depotDocument),
+}))
+
+export const depotMaintenanceRelations = relations(depotMaintenance, ({ one }) => ({
+  depot: one(depot, { fields: [depotMaintenance.depotId], references: [depot.id] }),
+  performedBy: one(member, {
+    fields: [depotMaintenance.performedById],
+    references: [member.id],
+  }),
+}))
+
+export const depotDocumentRelations = relations(depotDocument, ({ one }) => ({
+  depot: one(depot, { fields: [depotDocument.depotId], references: [depot.id] }),
+  uploadedBy: one(member, {
+    fields: [depotDocument.uploadedById],
     references: [member.id],
   }),
 }))

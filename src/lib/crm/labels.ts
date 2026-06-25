@@ -123,6 +123,46 @@ export const EQUIPMENT_CATEGORY_SUGGESTIONS = [
   'Alarme',
 ] as const
 
+/** Types de dépôt (emplacements de l'organisation). */
+export const DEPOT_TYPE_LABELS: Record<string, string> = {
+  entrepot: 'Entrepôt',
+  atelier: 'Atelier',
+  vehicule: 'Véhicule',
+  autre: 'Autre',
+}
+
+export const DEPOT_TYPES = ['entrepot', 'atelier', 'vehicule', 'autre'] as const
+
+/** Types d'entretien d'un dépôt/véhicule. */
+export const DEPOT_MAINTENANCE_TYPE_LABELS: Record<string, string> = {
+  revision: 'Révision',
+  vidange: 'Vidange',
+  pneus: 'Pneus',
+  controle_technique: 'Contrôle technique',
+  reparation: 'Réparation',
+  carrosserie: 'Carrosserie',
+  autre: 'Autre',
+}
+
+/** Carburant d'un véhicule. */
+export const FUEL_TYPE_LABELS: Record<string, string> = {
+  essence: 'Essence',
+  diesel: 'Diesel',
+  gpl: 'GPL',
+  electrique: 'Électrique',
+  hybride: 'Hybride',
+  autre: 'Autre',
+}
+
+/** Catégories de document de dépôt/véhicule. */
+export const DEPOT_DOCUMENT_CATEGORY_LABELS: Record<string, string> = {
+  carte_grise: 'Carte grise',
+  assurance: 'Assurance',
+  controle_technique: 'Contrôle technique',
+  facture: 'Facture',
+  autre: 'Autre',
+}
+
 /** Montant (coût) formaté en euros. `null` si absent/invalide. */
 export const formatCost = (amount: string | number | null | undefined): string | null => {
   if (amount === null || amount === undefined || amount === '') return null

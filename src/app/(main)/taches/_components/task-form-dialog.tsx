@@ -37,6 +37,7 @@ import { TASK_STATUS_LABELS } from '@/lib/crm/labels'
 import { taskStatusEnum } from '@/database/schema'
 import type { ClientOption } from '@/services/crm/client'
 import type { DealOption } from '@/services/crm/deal'
+import type { DepotOption } from '@/services/crm/depot'
 import type { EquipmentOption } from '@/services/crm/equipment'
 import type { SiteOption } from '@/services/crm/site'
 import type { OrgMemberOption } from '@/services/org/members'
@@ -52,12 +53,19 @@ export interface TaskFormDialogProps {
   members: OrgMemberOption[]
   currentMemberId: string
   /** Liens fixes (contexte fiche) : la liaison est imposée et non éditable. */
-  locked?: { clientId?: string; dealId?: string; siteId?: string; equipmentId?: string }
+  locked?: {
+    clientId?: string
+    dealId?: string
+    siteId?: string
+    equipmentId?: string
+    depotId?: string
+  }
   /** Options proposées dans les sélecteurs de liaison (vue globale). */
   clients?: ClientOption[]
   deals?: DealOption[]
   sites?: SiteOption[]
   equipments?: EquipmentOption[]
+  depots?: DepotOption[]
   task?: TaskView | null
   /** Échéance pré-remplie à la création (ex. clic sur un jour du calendrier). */
   defaultDueDate?: string
@@ -74,6 +82,7 @@ export const TaskFormDialog = ({
   deals,
   sites,
   equipments,
+  depots,
   task,
   defaultDueDate,
   onSaved,
@@ -88,6 +97,7 @@ export const TaskFormDialog = ({
   const [dealId, setDealId] = useState<string | null>(task?.dealId ?? null)
   const [siteId, setSiteId] = useState<string>(task?.siteId ?? NONE)
   const [equipmentId, setEquipmentId] = useState<string | null>(task?.equipmentId ?? null)
+  const [depotId, setDepotId] = useState<string | null>(task?.depotId ?? null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -102,6 +112,7 @@ export const TaskFormDialog = ({
     setDealId(task?.dealId ?? null)
     setSiteId(task?.siteId ?? NONE)
     setEquipmentId(task?.equipmentId ?? null)
+    setDepotId(task?.depotId ?? null)
     setError(null)
   }, [open, task, currentMemberId])
 
@@ -111,14 +122,17 @@ export const TaskFormDialog = ({
     value: e.id,
     label: `${e.name} · ${e.clientName}`,
   }))
+  const depotItems: Item[] = (depots ?? []).map((d) => ({ value: d.id, label: d.name }))
   const selectedClient = clientItems.find((i) => i.value === clientId) ?? null
   const selectedDeal = dealItems.find((i) => i.value === dealId) ?? null
   const selectedEquipment = equipmentItems.find((i) => i.value === equipmentId) ?? null
+  const selectedDepot = depotItems.find((i) => i.value === depotId) ?? null
 
   const showClient = !locked?.clientId && clients
   const showDeal = !locked?.dealId && deals
   const showSite = !locked?.siteId && sites
   const showEquipment = !locked?.equipmentId && equipments
+  const showDepot = !locked?.depotId && depots
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -136,6 +150,7 @@ export const TaskFormDialog = ({
       dealId: locked?.dealId ?? dealId ?? undefined,
       siteId: locked?.siteId ?? (siteId !== NONE ? siteId : undefined),
       equipmentId: locked?.equipmentId ?? equipmentId ?? undefined,
+      depotId: locked?.depotId ?? depotId ?? undefined,
     }
 
     const res = task ? await updateTaskAction(task.id, payload) : await createTaskAction(payload)
@@ -356,6 +371,30 @@ export const TaskFormDialog = ({
                   <ComboboxInput placeholder='Rechercher un équipement…' showClear />
                   <ComboboxPopup>
                     <ComboboxEmpty>Aucun équipement trouvé.</ComboboxEmpty>
+                    <ComboboxList>
+                      {(item: Item) => (
+                        <ComboboxItem key={item.value} value={item}>
+                          {item.label}
+                        </ComboboxItem>
+                      )}
+                    </ComboboxList>
+                  </ComboboxPopup>
+                </Combobox>
+              </div>
+            )}
+
+            {showDepot && depotItems.length > 0 && (
+              <div className='space-y-2'>
+                <Label>Dépôt</Label>
+                <Combobox
+                  items={depotItems}
+                  value={selectedDepot}
+                  onValueChange={(item: Item | null) => setDepotId(item?.value ?? null)}
+                  isItemEqualToValue={(a, b) => a?.value === b?.value}
+                >
+                  <ComboboxInput placeholder='Rechercher un dépôt…' showClear />
+                  <ComboboxPopup>
+                    <ComboboxEmpty>Aucun dépôt trouvé.</ComboboxEmpty>
                     <ComboboxList>
                       {(item: Item) => (
                         <ComboboxItem key={item.value} value={item}>

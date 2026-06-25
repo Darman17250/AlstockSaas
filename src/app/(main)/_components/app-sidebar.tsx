@@ -11,6 +11,7 @@ import {
   LogOut,
   Users,
   UsersRound,
+  Warehouse,
 } from 'lucide-react'
 
 import {
@@ -43,6 +44,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Clients', href: '/clients', icon: Users, resource: 'client' },
   { label: 'Affaires', href: '/affaires', icon: Briefcase, resource: 'deal' },
   { label: 'Chantiers', href: '/chantiers', icon: HardHat, resource: 'site' },
+  { label: 'Dépôts', href: '/depots', icon: Warehouse, resource: 'depot' },
   { label: 'Tâches', href: '/taches', icon: ListChecks, resource: 'activity' },
   { label: 'Équipe', href: '/equipe', icon: UsersRound, roles: ['owner', 'admin'] },
 ]

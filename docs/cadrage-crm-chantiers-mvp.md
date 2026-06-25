@@ -317,6 +317,65 @@ Hard-delete (ligne + objet bucket supprimés ensemble). Index : `organizationId`
 
 ---
 
+## Extension v1.2 — Dépôts & véhicules
+
+> Ajout validé après le parc d'équipements. Un **dépôt** = emplacement appartenant à l'**organisation** (entrepôt, atelier, véhicule…), à distinguer des `client_location` (qui appartiennent au client). Un **véhicule est un dépôt mobile** : même table avec un `type` + des champs véhicule **nullables** (pattern société/particulier de `client`). **Hors périmètre : aucun stock/contenu** dans les dépôts (juste les emplacements ; le stock viendra plus tard).
+
+### `depot` — Dépôt (ou véhicule)
+| Champ | Type | Notes |
+|---|---|---|
+| type | enum `depot_type` | `entrepot · atelier · vehicule · autre` |
+| name | text, not null | |
+| addressLine1/2, postalCode, city, country | text | Adresse |
+| responsibleId | fk → member, null (set null) | Responsable du dépôt |
+| notes | text | |
+| **[véhicule]** registrationNumber | text, null | Immatriculation |
+| **[véhicule]** brand, model | text, null | |
+| **[véhicule]** year | int, null | Année |
+| **[véhicule]** fuelType | enum `vehicle_fuel_type`, null | `essence · diesel · gpl · electrique · hybride · autre` |
+| **[véhicule]** vin | text, null | N° de série |
+| **[véhicule]** firstRegistrationDate | date, null | 1re mise en circulation |
+| **[véhicule]** mileage | int, null | Kilométrage courant (remonté par les entretiens) |
+| nextMaintenanceDate | date, null | Prochaine échéance (recalculée à chaque entretien) |
+
+Soft-delete. Index : `organizationId`, `type`. Les champs véhicule ne sont conservés que si `type = vehicule` (nettoyés côté service sinon).
+
+### `depot_maintenance` — Entretien d'un dépôt/véhicule (historique)
+| Champ | Type | Notes |
+|---|---|---|
+| depotId | fk → depot, not null (cascade) | |
+| type | enum `depot_maintenance_type` | `revision · vidange · pneus · controle_technique · reparation · carrosserie · autre` |
+| performedAt | date, not null | |
+| performedById | fk → member, null (set null) | |
+| provider | text, null | Prestataire (garage, concessionnaire…) |
+| mileage | int, null | Kilométrage au moment de l'entretien |
+| cost | decimal(10,2), null | |
+| description | text | |
+| nextDueDate | date, null | Prochaine échéance (date) → alimente `depot.nextMaintenanceDate` |
+| nextDueMileage | int, null | Prochaine échéance (km) |
+
+Soft-delete. Index : `organizationId`, `depotId`. À chaque écriture : recalcule `depot.nextMaintenanceDate` (min des `nextDueDate` non supprimés) et remonte `depot.mileage` si l'entretien fournit un km supérieur.
+
+### `depot_document` — Document d'un dépôt/véhicule
+| Champ | Type | Notes |
+|---|---|---|
+| depotId | fk → depot, not null (cascade) | |
+| category | enum `depot_document_category`, null | `carte_grise · assurance · controle_technique · facture · autre` |
+| storagePath | text, not null | Supabase Storage (bucket privé `affaire-documents`, préfixe `…/depots/…`) |
+| fileName, mimeType, size | text/int | Métadonnées |
+| expiresAt | date, null | Échéance (assurance, contrôle technique…) |
+| uploadedById | fk → member, null (set null) | |
+
+Hard-delete (ligne + objet bucket). Index : `organizationId`, `depotId`. Perms : suivent la ressource `depot` (lecture `depot:read`, ajout/suppression `depot:update`).
+
+### Liens & décisions
+- `activity.depotId` (fk null, set null) ajouté → une **tâche** peut être un rappel d'entretien rattaché à un dépôt (réutilise Activités & tâches).
+- Enums : `depot_type`, `depot_maintenance_type`, `vehicle_fuel_type`, `depot_document_category`.
+- Permissions : `depot` (admin/conducteur complet · commercial/terrain lecture) ; `depotMaintenance` (admin/conducteur complet · terrain create/read/update · commercial lecture).
+- Entretien au **kilométrage** en plus des dates ; échéances **documents** via `expiresAt` + `category`. Aucune table « stock ».
+
+---
+
 ## Décisions arrêtées (v1)
 
 1. **Client = société OU particulier** : entité unique `client` (`type = societe | particulier`), table nommée `client`.

@@ -3,7 +3,16 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Briefcase, Building2, HardHat, Package, Pencil, Trash2, User } from 'lucide-react'
+import {
+  Briefcase,
+  Building2,
+  HardHat,
+  Package,
+  Pencil,
+  Trash2,
+  User,
+  Warehouse,
+} from 'lucide-react'
 
 import {
   AlertDialog,
@@ -35,6 +44,8 @@ export interface TaskView {
   siteName: string | null
   equipmentId: string | null
   equipmentName: string | null
+  depotId: string | null
+  depotName: string | null
   coAssignees: { id: string; name: string }[]
 }
 
@@ -139,6 +150,14 @@ export const TaskRow = ({ task, canEdit, onEdit, showAssignee }: TaskRowProps) =
               className='inline-flex items-center gap-1 hover:underline'
             >
               <Package className='size-3' /> {task.equipmentName}
+            </Link>
+          )}
+          {task.depotId && task.depotName && (
+            <Link
+              href={`/depots/${task.depotId}`}
+              className='inline-flex items-center gap-1 hover:underline'
+            >
+              <Warehouse className='size-3' /> {task.depotName}
             </Link>
           )}
         </div>
