@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -9,9 +10,11 @@ import {
   LayoutDashboard,
   ListChecks,
   LogOut,
+  ScanLine,
   Users,
   UsersRound,
   Warehouse,
+  Wrench,
 } from 'lucide-react'
 
 import {
@@ -26,6 +29,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
+import { ScannerDialog } from '@/components/qr/scanner-dialog'
 import { client } from '@/lib/auth/auth-client'
 import { can, type AppRole, type BusinessResource } from '@/lib/auth/permissions'
 
@@ -45,6 +49,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Affaires', href: '/affaires', icon: Briefcase, resource: 'deal' },
   { label: 'Chantiers', href: '/chantiers', icon: HardHat, resource: 'site' },
   { label: 'Dépôts', href: '/depots', icon: Warehouse, resource: 'depot' },
+  { label: 'Matériel', href: '/materiel', icon: Wrench, resource: 'tool' },
   { label: 'Tâches', href: '/taches', icon: ListChecks, resource: 'activity' },
   { label: 'Équipe', href: '/equipe', icon: UsersRound, roles: ['owner', 'admin'] },
 ]
@@ -58,6 +63,7 @@ interface AppSidebarProps {
 export const AppSidebar = ({ orgName, role, user }: AppSidebarProps) => {
   const pathname = usePathname()
   const router = useRouter()
+  const [scannerOpen, setScannerOpen] = useState(false)
 
   const visibleItems = NAV_ITEMS.filter((item) => {
     if (item.resource) return can(role, item.resource, 'read')
@@ -108,6 +114,20 @@ export const AppSidebar = ({ orgName, role, user }: AppSidebarProps) => {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Outils</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => setScannerOpen(true)} tooltip='Scanner un QR'>
+                  <ScanLine className='size-4' />
+                  <span>Scanner</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter>
@@ -126,6 +146,8 @@ export const AppSidebar = ({ orgName, role, user }: AppSidebarProps) => {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+
+      <ScannerDialog open={scannerOpen} onOpenChange={setScannerOpen} />
     </Sidebar>
   )
 }

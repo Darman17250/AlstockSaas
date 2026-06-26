@@ -376,6 +376,42 @@ Hard-delete (ligne + objet bucket). Index : `organizationId`, `depotId`. Perms :
 
 ---
 
+## Extension v1.3 — Parc de matériel (outillage & machines), transferts, QR & scanner
+
+> Ajout validé après les dépôts & véhicules. Un **matériel** = actif **unitaire** appartenant à l'**organisation** (perceuse, perfo, meuleuse… ou nacelle, pelleteuse, mini-pelle…), suivi individuellement (1 ligne = 1 machine, n° de série). À distinguer de `equipment` (parc installé **chez le client**) et de `depot` (emplacements). **Table unique `tool`** avec `kind = outil | machine` (pattern dépôt/véhicule). **Hors périmètre : le stock par quantités / consommables** — ici on suit un actif unitaire, pas des références en quantité. (La note « hors périmètre » de CLAUDE.md §1 a été mise à jour en conséquence : matériel unitaire DEDANS, stock par quantités DEHORS.)
+
+### `tool` (matériel) — soft-delete
+- `id`, `organizationId` (fk, not null, idx), `kind` (`tool_kind`, idx), `name`, `category` (texte libre + datalist de suggestions outils/machines).
+- Identification : `brand`, `model`, `serialNumber`, `reference`.
+- `status` (`tool_status` : `disponible | en_service | en_panne | en_reparation | hors_service | perdu`, défaut `disponible`, idx).
+- **Localisation courante exclusive** : `currentDepotId` (→ `depot`, set null, idx) **OU** `currentSiteId` (→ `site`, set null, idx) — au plus un non-null, **garanti côté service**. À la création, un **dépôt initial est requis**. La localisation ne change ensuite **que** par un transfert.
+- `responsibleId` (→ `member`, set null), `purchaseDate`, `purchaseCost`, `maintenanceFrequencyMonths`, `nextMaintenanceDate` (recalculé depuis les entretiens).
+- Champs **machine** (nullables) : `fuelLevel` (`fuel_level`), `engineHours` (compteur horaire).
+- `notes`, timestamps, `deletedAt`.
+
+### `tool_maintenance` (entretien) — soft-delete
+Miroir de `depot_maintenance`, mais au **compteur horaire** (`hours` / `nextDueHours`) au lieu du kilométrage. `type` (`tool_maintenance_type`), `performedAt`, `performedById`, `provider`, `cost`, `description`, `nextDueDate`. À chaque écriture : recalcule `tool.nextMaintenanceDate` et remonte `engineHours` si l'entretien renseigne un compteur supérieur.
+
+### `tool_transfer` (journal des transferts) — hard-delete, append-only
+`toolId`, `fromDepotId`/`fromSiteId`/`toDepotId`/`toSiteId` (→ depot/site, set null), `transferredAt`, `transferredById`, `note`. Le service `createTransfer` est **transactionnel** : valide la destination dans l'org, fixe `from*` = localisation actuelle, met à jour `tool.current*` (exclusif), et applique le **statut automatique** : → chantier ⇒ `en_service` ; → dépôt ⇒ `disponible`, **sauf** si le statut est protégé (`en_panne`, `en_reparation`, `hors_service`, `perdu`).
+
+### `tool_issue` (signalement de problème) — cycle par statut (pas de soft-delete)
+`toolId`, `severity` (`tool_issue_severity` : `mineur | majeur | bloquant`), `status` (`tool_issue_status` : `ouvert | en_cours | resolu`, idx), `description`, `reportedById`, `resolvedById`, `resolvedAt`. Un problème **bloquant** met le matériel `en_panne` ; résoudre le **dernier** problème ouvert d'un matériel `en_panne` le repasse `disponible`.
+
+### `tool_document` (documents) — hard-delete
+Miroir de `depot_document` **sans `expiresAt`** : `category` (`tool_document_category` : `facture | manuel | garantie | photo | autre`), `storagePath`, `fileName`, `mimeType`, `size`, `uploadedById`. Chemin storage `org/tools/<id>/…`. Perms : suivent la ressource `tool`.
+
+### Liens & décisions
+- `activity.toolId` (fk null, set null) ajouté → une **tâche** peut être un rappel d'entretien rattaché à un matériel (réutilise Activités & tâches).
+- Enums : `tool_kind`, `tool_status`, `tool_maintenance_type`, `tool_document_category`, `fuel_level`, `tool_issue_severity`, `tool_issue_status`.
+- Permissions : `tool` (admin/conducteur complet · commercial/terrain lecture) ; `toolMaintenance` (admin/conducteur complet · terrain create/read/update · commercial lecture) ; `toolTransfer` (admin/conducteur create/read/delete · terrain create/read · commercial lecture) ; `toolIssue` (admin/conducteur complet · terrain create/read · commercial lecture).
+
+### Convention QR & scanner global (transverse, réutilisable)
+- **Tout QR encode l'URL absolue même-origine** de la page deep-link de l'entité, construite depuis les en-têtes de la requête. Aujourd'hui : équipement client → `/equipements/[id]` ; matériel → `/materiel/[id]/transfert` (scan ⇒ déplacer dans les deux sens). Demain (produits, chantiers…), il suffit d'imprimer un QR avec l'URL de leur page — **aucune modification du scanner**.
+- **Scanner global** : composant caméra réutilisable (`@zxing/browser`) + dialog mobile-first, déclenché depuis une entrée « Scanner » de la sidebar (tous rôles authentifiés). Sur lecture d'une URL **même origine**, navigue vers son chemin interne ; sinon affiche le texte décodé. Repli **saisie manuelle** si caméra refusée/absente. La caméra exige **https** (ou `localhost`).
+
+---
+
 ## Décisions arrêtées (v1)
 
 1. **Client = société OU particulier** : entité unique `client` (`type = societe | particulier`), table nommée `client`.

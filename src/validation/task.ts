@@ -33,6 +33,7 @@ export const taskFieldsSchema = z.object({
   siteId: optionalUuid,
   equipmentId: optionalUuid,
   depotId: optionalUuid,
+  toolId: optionalUuid,
 })
 
 export const taskCreateSchema = taskFieldsSchema

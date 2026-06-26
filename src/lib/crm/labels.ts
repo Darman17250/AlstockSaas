@@ -163,6 +163,112 @@ export const DEPOT_DOCUMENT_CATEGORY_LABELS: Record<string, string> = {
   autre: 'Autre',
 }
 
+// ============================================================================
+// Matériel (parc d'outillage & machines de l'organisation)
+// ============================================================================
+
+/** Nature d'un matériel : outil à main ou machine/engin. */
+export const TOOL_KIND_LABELS: Record<string, string> = {
+  outil: 'Outillage',
+  machine: 'Machine',
+}
+
+export const TOOL_KINDS = ['outil', 'machine'] as const
+
+/** Statut courant d'un matériel. */
+export const TOOL_STATUS_LABELS: Record<string, string> = {
+  disponible: 'Disponible',
+  en_service: 'En service',
+  en_panne: 'En panne',
+  en_reparation: 'En réparation',
+  hors_service: 'Hors service',
+  perdu: 'Perdu',
+}
+
+export const TOOL_STATUSES = [
+  'disponible',
+  'en_service',
+  'en_panne',
+  'en_reparation',
+  'hors_service',
+  'perdu',
+] as const
+
+/** Types d'entretien d'un matériel. */
+export const TOOL_MAINTENANCE_TYPE_LABELS: Record<string, string> = {
+  controle: 'Contrôle',
+  reparation: 'Réparation',
+  revision: 'Révision',
+  etalonnage: 'Étalonnage',
+  remplacement_piece: 'Remplacement de pièce',
+  autre: 'Autre',
+}
+
+/** Catégories de document de matériel. */
+export const TOOL_DOCUMENT_CATEGORY_LABELS: Record<string, string> = {
+  facture: 'Facture',
+  manuel: 'Manuel',
+  garantie: 'Garantie',
+  photo: 'Photo',
+  autre: 'Autre',
+}
+
+/** Niveau de carburant (machines). */
+export const FUEL_LEVEL_LABELS: Record<string, string> = {
+  vide: 'Vide',
+  quart: '1/4',
+  moitie: '1/2',
+  trois_quarts: '3/4',
+  plein: 'Plein',
+}
+
+export const FUEL_LEVELS = ['vide', 'quart', 'moitie', 'trois_quarts', 'plein'] as const
+
+/** Gravité d'un problème signalé sur un matériel. */
+export const TOOL_ISSUE_SEVERITY_LABELS: Record<string, string> = {
+  mineur: 'Mineur',
+  majeur: 'Majeur',
+  bloquant: 'Bloquant',
+}
+
+export const TOOL_ISSUE_SEVERITIES = ['mineur', 'majeur', 'bloquant'] as const
+
+/** Statut d'un problème signalé. */
+export const TOOL_ISSUE_STATUS_LABELS: Record<string, string> = {
+  ouvert: 'Ouvert',
+  en_cours: 'En cours',
+  resolu: 'Résolu',
+}
+
+export const TOOL_ISSUE_STATUSES = ['ouvert', 'en_cours', 'resolu'] as const
+
+/** Suggestions de catégorie pour l'outillage (datalist, champ libre). */
+export const TOOL_CATEGORY_SUGGESTIONS = [
+  'Perceuse',
+  'Perforateur',
+  'Meuleuse',
+  'Visseuse',
+  'Scie',
+  'Ponceuse',
+  'Compresseur',
+  'Niveau laser',
+  'Poste à souder',
+  'Aspirateur',
+] as const
+
+/** Suggestions de catégorie pour les machines/engins (datalist, champ libre). */
+export const MACHINE_CATEGORY_SUGGESTIONS = [
+  'Nacelle',
+  'Pelleteuse',
+  'Mini-pelle',
+  'Chargeuse',
+  'Télescopique',
+  'Groupe électrogène',
+  'Bétonnière',
+  'Compacteur',
+  'Dumper',
+] as const
+
 /** Montant (coût) formaté en euros. `null` si absent/invalide. */
 export const formatCost = (amount: string | number | null | undefined): string | null => {
   if (amount === null || amount === undefined || amount === '') return null

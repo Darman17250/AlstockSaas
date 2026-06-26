@@ -22,7 +22,9 @@ import { getDepot } from '@/services/crm/depot'
 import { listDepotDocuments } from '@/services/crm/depot-document'
 import { listMaintenanceForDepot } from '@/services/crm/depot-maintenance'
 import { listTasksForDepot, type TaskItem } from '@/services/crm/task'
+import { listToolsForDepot } from '@/services/crm/tool'
 import { listOrgMembers } from '@/services/org/members'
+import { ToolsPresentSection } from '../../materiel/_components/tools-present-section'
 import { TasksSection } from '../../taches/_components/tasks-section'
 import { DepotDetailActions } from './_components/depot-detail-actions'
 import { DepotDocumentsSection } from './_components/depot-documents-section'
@@ -76,12 +78,15 @@ export default async function DepotPage({ params }: DepotPageProps) {
   const canManageMaintenance = can(ctx.role, 'depotMaintenance', 'create')
   const canCreateTask = can(ctx.role, 'activity', 'create')
   const canReadTasks = can(ctx.role, 'activity', 'read')
+  const canReadTools = can(ctx.role, 'tool', 'read')
+  const canTransferTools = can(ctx.role, 'toolTransfer', 'create')
 
   const isVehicle = depot.type === 'vehicule'
   const { items, totalCost } = await listMaintenanceForDepot(ctx, id)
   const members = canManageMaintenance || canCreateTask ? await listOrgMembers(ctx) : []
   const documents = await listDepotDocuments(ctx, id)
   const tasks = canReadTasks ? await listTasksForDepot(ctx, id) : []
+  const toolsPresent = canReadTools ? await listToolsForDepot(ctx, id) : []
   const storageConfigured = isStorageConfigured()
 
   const overdue = depot.nextMaintenanceDate !== null && depot.nextMaintenanceDate < todayKey()
@@ -182,6 +187,10 @@ export default async function DepotPage({ params }: DepotPageProps) {
           currentMemberId={ctx.memberId}
           canManage={canManageMaintenance}
         />
+
+        {canReadTools && (
+          <ToolsPresentSection items={toolsPresent} canTransfer={canTransferTools} />
+        )}
 
         {canReadTasks && (
           <TasksSection

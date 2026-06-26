@@ -11,6 +11,7 @@ import {
   member,
   site,
   taskAssignee,
+  tool,
   user,
 } from '@/database/schema'
 import {
@@ -106,6 +107,17 @@ const assertDepotInOrg = async (ctx: OrgContext, id: string): Promise<void> => {
   if (!row) throw new NotFoundError('Dépôt introuvable')
 }
 
+const assertToolInOrg = async (ctx: OrgContext, id: string): Promise<void> => {
+  const [row] = await db
+    .select({ id: tool.id })
+    .from(tool)
+    .where(
+      and(eq(tool.id, id), eq(tool.organizationId, ctx.organizationId), isNull(tool.deletedAt))
+    )
+    .limit(1)
+  if (!row) throw new NotFoundError('Matériel introuvable')
+}
+
 /** Vérifie tous les liens fournis (client/affaire/chantier/équipement/dépôt/assigné). */
 const assertLinks = async (
   ctx: OrgContext,
@@ -116,6 +128,7 @@ const assertLinks = async (
   if (input.siteId) await assertSiteInOrg(ctx, input.siteId)
   if (input.equipmentId) await assertEquipmentInOrg(ctx, input.equipmentId)
   if (input.depotId) await assertDepotInOrg(ctx, input.depotId)
+  if (input.toolId) await assertToolInOrg(ctx, input.toolId)
   if (input.assigneeId) await assertMemberInOrg(ctx, input.assigneeId)
 }
 
@@ -132,6 +145,7 @@ const toColumns = (input: TaskCreateInput | TaskUpdateInput) => ({
   siteId: input.siteId ?? null,
   equipmentId: input.equipmentId ?? null,
   depotId: input.depotId ?? null,
+  toolId: input.toolId ?? null,
 })
 
 export interface TaskCoAssignee {
@@ -157,6 +171,8 @@ export interface TaskItem {
   equipmentName: string | null
   depotId: string | null
   depotName: string | null
+  toolId: string | null
+  toolName: string | null
   coAssignees: TaskCoAssignee[]
 }
 
@@ -236,6 +252,8 @@ const taskSelect = {
   equipmentName: equipment.name,
   depotId: activity.depotId,
   depotName: depot.name,
+  toolId: activity.toolId,
+  toolName: tool.name,
 }
 
 /** Base de requête tâches, jointe aux libellés des liens. */
@@ -250,6 +268,7 @@ const taskQuery = () =>
     .leftJoin(site, eq(activity.siteId, site.id))
     .leftJoin(equipment, eq(activity.equipmentId, equipment.id))
     .leftJoin(depot, eq(activity.depotId, depot.id))
+    .leftJoin(tool, eq(activity.toolId, tool.id))
 
 /** Tâches assignées à l'utilisateur courant (vue « Mes tâches »), hors annulées. */
 export const listMyTasks = async (ctx: OrgContext): Promise<TaskItem[]> => {
@@ -363,6 +382,20 @@ export const listTasksForDepot = async (ctx: OrgContext, depotId: string): Promi
         eq(activity.organizationId, ctx.organizationId),
         eq(activity.type, TASK_TYPE),
         eq(activity.depotId, depotId)
+      )
+    )
+    .orderBy(asc(activity.dueDate), desc(activity.createdAt))
+  return attachCoAssignees(ctx, rows)
+}
+
+export const listTasksForTool = async (ctx: OrgContext, toolId: string): Promise<TaskItem[]> => {
+  requirePermission(ctx, 'activity', 'read')
+  const rows = await taskQuery()
+    .where(
+      and(
+        eq(activity.organizationId, ctx.organizationId),
+        eq(activity.type, TASK_TYPE),
+        eq(activity.toolId, toolId)
       )
     )
     .orderBy(asc(activity.dueDate), desc(activity.createdAt))

@@ -15,7 +15,9 @@ Chaîne métier : `Société/Contact → Affaire (pipeline) → [gagnée] → Ch
 Le modèle de données complet (entités, champs, relations) vit dans `docs/cadrage-crm-chantiers-mvp.md`. **Le consulter avant toute feature touchant la base.**
 
 ### Hors périmètre — NE PAS implémenter
-Facturation, devis, étude de prix/chiffrage, situations de travaux, recouvrement, factures fournisseurs, export paie, stock/dépôts/matériel. Si une demande de feature dérive vers ces sujets, s'arrêter et demander confirmation.
+Facturation, devis, étude de prix/chiffrage, situations de travaux, recouvrement, factures fournisseurs, export paie, **stock par quantités / consommables**. Si une demande de feature dérive vers ces sujets, s'arrêter et demander confirmation.
+
+> **DANS le périmètre (validé) :** les **dépôts/véhicules** (emplacements de l'organisation, cf. cadrage v1.2) et le **matériel unitaire** — parc d'outillage & machines suivi comme **actifs individuels** (1 ligne = 1 machine, n° de série, localisation, entretien, transferts ; cf. cadrage v1.3). Ce qui reste DEHORS, c'est le **stock par quantités** (consommables, références gérées en quantité).
 
 ---
 

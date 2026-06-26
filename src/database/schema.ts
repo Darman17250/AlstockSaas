@@ -410,6 +410,47 @@ export const depotDocumentCategoryEnum = pgEnum('depot_document_category', [
   'autre',
 ])
 
+// Matériel : parc d'actifs unitaires de l'organisation (outillage + machines),
+// distinct de `equipment` (chez le client) et `depot` (emplacements). La
+// localisation courante est SOIT un dépôt SOIT un chantier (transfert).
+export const toolKindEnum = pgEnum('tool_kind', ['outil', 'machine'])
+export const toolStatusEnum = pgEnum('tool_status', [
+  'disponible',
+  'en_service',
+  'en_panne',
+  'en_reparation',
+  'hors_service',
+  'perdu',
+])
+export const toolMaintenanceTypeEnum = pgEnum('tool_maintenance_type', [
+  'controle',
+  'reparation',
+  'revision',
+  'etalonnage',
+  'remplacement_piece',
+  'autre',
+])
+export const toolDocumentCategoryEnum = pgEnum('tool_document_category', [
+  'facture',
+  'manuel',
+  'garantie',
+  'photo',
+  'autre',
+])
+export const fuelLevelEnum = pgEnum('fuel_level', [
+  'vide',
+  'quart',
+  'moitie',
+  'trois_quarts',
+  'plein',
+])
+export const toolIssueSeverityEnum = pgEnum('tool_issue_severity', [
+  'mineur',
+  'majeur',
+  'bloquant',
+])
+export const toolIssueStatusEnum = pgEnum('tool_issue_status', ['ouvert', 'en_cours', 'resolu'])
+
 // ============================================================================
 // Tables métier — toutes portent organizationId (non null, indexé) pour le
 // cloisonnement multi-tenant. Soft-delete (deletedAt) sur les entités à valeur.
@@ -720,6 +761,170 @@ export const depotDocument = pgTable(
   ]
 )
 
+// Matériel : un actif unitaire (1 ligne = 1 machine, n° de série). La localisation
+// courante est exclusive (au plus un de currentDepotId/currentSiteId non null),
+// garantie côté service.
+export const tool = pgTable(
+  'tool',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    kind: toolKindEnum('kind').notNull(),
+    name: text('name').notNull(),
+    category: text('category'),
+    brand: text('brand'),
+    model: text('model'),
+    serialNumber: text('serial_number'),
+    reference: text('reference'),
+    status: toolStatusEnum('status').default('disponible').notNull(),
+    // Localisation courante : SOIT un dépôt SOIT un chantier (jamais les deux).
+    currentDepotId: uuid('current_depot_id').references(() => depot.id, { onDelete: 'set null' }),
+    currentSiteId: uuid('current_site_id').references(() => site.id, { onDelete: 'set null' }),
+    responsibleId: text('responsible_id').references(() => member.id, { onDelete: 'set null' }),
+    purchaseDate: date('purchase_date'),
+    purchaseCost: decimal('purchase_cost', { precision: 10, scale: 2 }),
+    maintenanceFrequencyMonths: integer('maintenance_frequency_months'),
+    // Recalculé par le service depuis le dernier entretien (nextDueDate).
+    nextMaintenanceDate: date('next_maintenance_date'),
+    // Champs machine (nullables) : carburant + compteur horaire.
+    fuelLevel: fuelLevelEnum('fuel_level'),
+    engineHours: integer('engine_hours'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => [
+    index('tool_organizationId_idx').on(table.organizationId),
+    index('tool_kind_idx').on(table.kind),
+    index('tool_status_idx').on(table.status),
+    index('tool_currentDepotId_idx').on(table.currentDepotId),
+    index('tool_currentSiteId_idx').on(table.currentSiteId),
+  ]
+)
+
+export const toolMaintenance = pgTable(
+  'tool_maintenance',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    toolId: uuid('tool_id')
+      .notNull()
+      .references(() => tool.id, { onDelete: 'cascade' }),
+    type: toolMaintenanceTypeEnum('type').default('controle').notNull(),
+    performedAt: date('performed_at').notNull(),
+    performedById: text('performed_by_id').references(() => member.id, { onDelete: 'set null' }),
+    provider: text('provider'),
+    // Compteur horaire au moment de l'entretien (machines).
+    hours: integer('hours'),
+    cost: decimal('cost', { precision: 10, scale: 2 }),
+    description: text('description'),
+    nextDueDate: date('next_due_date'),
+    nextDueHours: integer('next_due_hours'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => [
+    index('tool_maintenance_organizationId_idx').on(table.organizationId),
+    index('tool_maintenance_toolId_idx').on(table.toolId),
+  ]
+)
+
+// Journal append-only des transferts (hard-delete). from*/to* = dépôt ou chantier.
+export const toolTransfer = pgTable(
+  'tool_transfer',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    toolId: uuid('tool_id')
+      .notNull()
+      .references(() => tool.id, { onDelete: 'cascade' }),
+    fromDepotId: uuid('from_depot_id').references(() => depot.id, { onDelete: 'set null' }),
+    fromSiteId: uuid('from_site_id').references(() => site.id, { onDelete: 'set null' }),
+    toDepotId: uuid('to_depot_id').references(() => depot.id, { onDelete: 'set null' }),
+    toSiteId: uuid('to_site_id').references(() => site.id, { onDelete: 'set null' }),
+    transferredAt: timestamp('transferred_at').defaultNow().notNull(),
+    transferredById: text('transferred_by_id').references(() => member.id, { onDelete: 'set null' }),
+    note: text('note'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('tool_transfer_organizationId_idx').on(table.organizationId),
+    index('tool_transfer_toolId_idx').on(table.toolId),
+  ]
+)
+
+// Signalement de problème : pas de soft-delete, cycle de vie via `status`.
+export const toolIssue = pgTable(
+  'tool_issue',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    toolId: uuid('tool_id')
+      .notNull()
+      .references(() => tool.id, { onDelete: 'cascade' }),
+    severity: toolIssueSeverityEnum('severity').default('mineur').notNull(),
+    status: toolIssueStatusEnum('status').default('ouvert').notNull(),
+    description: text('description').notNull(),
+    reportedById: text('reported_by_id').references(() => member.id, { onDelete: 'set null' }),
+    resolvedById: text('resolved_by_id').references(() => member.id, { onDelete: 'set null' }),
+    resolvedAt: timestamp('resolved_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('tool_issue_organizationId_idx').on(table.organizationId),
+    index('tool_issue_toolId_idx').on(table.toolId),
+    index('tool_issue_status_idx').on(table.status),
+  ]
+)
+
+export const toolDocument = pgTable(
+  'tool_document',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    toolId: uuid('tool_id')
+      .notNull()
+      .references(() => tool.id, { onDelete: 'cascade' }),
+    category: toolDocumentCategoryEnum('category'),
+    storagePath: text('storage_path').notNull(),
+    fileName: text('file_name').notNull(),
+    mimeType: text('mime_type'),
+    size: integer('size'),
+    uploadedById: text('uploaded_by_id').references(() => member.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('tool_document_organizationId_idx').on(table.organizationId),
+    index('tool_document_toolId_idx').on(table.toolId),
+  ]
+)
+
 export const site = pgTable(
   'site',
   {
@@ -973,6 +1178,7 @@ export const activity = pgTable(
     siteId: uuid('site_id').references(() => site.id, { onDelete: 'set null' }),
     equipmentId: uuid('equipment_id').references(() => equipment.id, { onDelete: 'set null' }),
     depotId: uuid('depot_id').references(() => depot.id, { onDelete: 'set null' }),
+    toolId: uuid('tool_id').references(() => tool.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
@@ -986,6 +1192,7 @@ export const activity = pgTable(
     index('activity_status_idx').on(table.status),
     index('activity_equipmentId_idx').on(table.equipmentId),
     index('activity_depotId_idx').on(table.depotId),
+    index('activity_toolId_idx').on(table.toolId),
   ]
 )
 
@@ -1233,6 +1440,50 @@ export const depotDocumentRelations = relations(depotDocument, ({ one }) => ({
   depot: one(depot, { fields: [depotDocument.depotId], references: [depot.id] }),
   uploadedBy: one(member, {
     fields: [depotDocument.uploadedById],
+    references: [member.id],
+  }),
+}))
+
+export const toolRelations = relations(tool, ({ one, many }) => ({
+  organization: one(organization, {
+    fields: [tool.organizationId],
+    references: [organization.id],
+  }),
+  responsible: one(member, { fields: [tool.responsibleId], references: [member.id] }),
+  currentDepot: one(depot, { fields: [tool.currentDepotId], references: [depot.id] }),
+  currentSite: one(site, { fields: [tool.currentSiteId], references: [site.id] }),
+  maintenances: many(toolMaintenance),
+  transfers: many(toolTransfer),
+  issues: many(toolIssue),
+  documents: many(toolDocument),
+}))
+
+export const toolMaintenanceRelations = relations(toolMaintenance, ({ one }) => ({
+  tool: one(tool, { fields: [toolMaintenance.toolId], references: [tool.id] }),
+  performedBy: one(member, {
+    fields: [toolMaintenance.performedById],
+    references: [member.id],
+  }),
+}))
+
+export const toolTransferRelations = relations(toolTransfer, ({ one }) => ({
+  tool: one(tool, { fields: [toolTransfer.toolId], references: [tool.id] }),
+  transferredBy: one(member, {
+    fields: [toolTransfer.transferredById],
+    references: [member.id],
+  }),
+}))
+
+export const toolIssueRelations = relations(toolIssue, ({ one }) => ({
+  tool: one(tool, { fields: [toolIssue.toolId], references: [tool.id] }),
+  reportedBy: one(member, { fields: [toolIssue.reportedById], references: [member.id] }),
+  resolvedBy: one(member, { fields: [toolIssue.resolvedById], references: [member.id] }),
+}))
+
+export const toolDocumentRelations = relations(toolDocument, ({ one }) => ({
+  tool: one(tool, { fields: [toolDocument.toolId], references: [tool.id] }),
+  uploadedBy: one(member, {
+    fields: [toolDocument.uploadedById],
     references: [member.id],
   }),
 }))

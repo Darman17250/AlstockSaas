@@ -13,13 +13,14 @@ interface TasksSectionProps {
   canEdit: boolean
   currentMemberId: string
   members: OrgMemberOption[]
-  /** Liaison imposée par le contexte (fiche affaire/client/chantier/équipement/dépôt). */
+  /** Liaison imposée par le contexte (fiche affaire/client/chantier/équipement/dépôt/matériel). */
   locked: {
     clientId?: string
     dealId?: string
     siteId?: string
     equipmentId?: string
     depotId?: string
+    toolId?: string
   }
 }
 

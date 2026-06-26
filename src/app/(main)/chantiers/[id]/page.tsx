@@ -24,7 +24,9 @@ import { listSiteMessages } from '@/services/crm/site-message'
 import { listSiteTeam } from '@/services/crm/site-member'
 import { listSiteReports } from '@/services/crm/site-report'
 import { listTasksForSite, type TaskItem } from '@/services/crm/task'
+import { listToolsForSite } from '@/services/crm/tool'
 import { listOrgMembers } from '@/services/org/members'
+import { ToolsPresentSection } from '../../materiel/_components/tools-present-section'
 import { TasksSection } from '../../taches/_components/tasks-section'
 import { DocumentsSection } from './_components/documents-section'
 import { SiteActions } from './_components/site-actions'
@@ -84,6 +86,9 @@ export default async function SitePage({ params }: SitePageProps) {
   const canReadTasks = can(ctx.role, 'activity', 'read')
   const canEditTasks = can(ctx.role, 'activity', 'create')
   const tasks = canReadTasks ? await listTasksForSite(ctx, id) : []
+  const canReadTools = can(ctx.role, 'tool', 'read')
+  const canTransferTools = can(ctx.role, 'toolTransfer', 'create')
+  const toolsPresent = canReadTools ? await listToolsForSite(ctx, id) : []
   // Liste des membres org partagée par l'équipe, les tâches et les mentions du chat.
   const orgMembers = await listOrgMembers(ctx)
   const taskMembers = canEditTasks ? orgMembers : []
@@ -183,6 +188,10 @@ export default async function SitePage({ params }: SitePageProps) {
         )}
 
         <SiteTeamSection siteId={data.id} team={team} members={teamMembers} canEdit={canEdit} />
+
+        {canReadTools && (
+          <ToolsPresentSection items={toolsPresent} canTransfer={canTransferTools} />
+        )}
 
         <SiteChat
           siteId={data.id}

@@ -2,7 +2,7 @@
 
 > **But de ce document** : permettre à une nouvelle session Claude de reprendre le développement **sans re-explorer le repo**. À lire en premier, avec `CLAUDE.md` et `docs/cadrage-crm-chantiers-mvp.md`. À tenir à jour à la fin de chaque feature.
 
-Dernière mise à jour : fin **Dépôts & véhicules** (entrepôts/ateliers/véhicules dans une table unique `depot` + champs véhicule nullables ; entretien daté **et** au km ; documents avec catégorie + échéance ; tâche de rappel via `activity.depotId`). `typecheck`/`lint` ✅, **migration 0009 appliquée**. Voir §14. Avant : Rapports de chantier (§12) et lien tâche ↔ équipement. Prochaine étape : **Pointage des heures** (§13).
+Dernière mise à jour : fin **Matériel (parc d'outillage & machines) + scanner QR global** (table unique `tool` avec `kind = outil | machine` ; localisation courante exclusive dépôt **ou** chantier ; transferts journalisés avec statut auto ; entretien daté **et** au compteur horaire ; signalement de problèmes ; documents ; étiquette QR → page de transfert mobile ; scanner QR réutilisable dans la sidebar ; `activity.toolId`). `typecheck`/`lint` ✅, **migration 0010 appliquée** (jouée manuellement en SQL — le journal Drizzle ne la connaît pas, cf. §15). Voir §15. Avant : Dépôts & véhicules (§14). Prochaine étape : **Pointage des heures**.
 
 ---
 
@@ -26,6 +26,7 @@ Dernière mise à jour : fin **Dépôts & véhicules** (entrepôts/ateliers/véh
 | ↳ Lien tâche ↔ équipement (sélecteur + sections croisées) | ✅ terminée |
 | **Rapports de chantier** (saisie terrain météo/effectif/avancement/aléas + photos) | ✅ **terminée** (voir §12) |
 | **Dépôts & véhicules** (entrepôts/ateliers/véhicules · entretien km/dates · documents échéances · tâches) | ✅ **terminée** (`typecheck`/`lint` ✅, migration 0009 appliquée — voir §14) |
+| **Matériel** (parc outillage & machines · transferts dépôt↔chantier · entretien dates/heures · problèmes · documents · étiquette QR) + **scanner QR global** | ✅ **terminée** (`typecheck`/`lint` ✅, migration 0010 appliquée — voir §15 ; **test navigateur à faire**) |
 | Pointage · Dashboards | ⏳ à faire |
 
 > ⚠️ Numérotation des features **non fiable** dans le repo : certains commentaires de F2 parlent de « conversion F5 » pour les chantiers. Se référer à l'**ordre nommé** de `CLAUDE.md §10` (Affaires → **Activités & tâches** → Chantiers → Rapports → Pointage → Dashboards), pas aux numéros.
@@ -50,6 +51,7 @@ Vérifs Phase 0 passées : `typecheck` ✅ · `lint` ✅ (1 seul `info` préexis
 - **Port de dev figé sur 3001** (`package.json` → `next dev -p 3001`) car un autre projet (`/Documents/Alstock`) occupe le 3000. `.env` URLs alignées sur 3001. Le client auth (`auth-client.ts`) cible l'origine du navigateur en dev (same-origin, pas de CORS).
 - **Bugs cookies du boilerplate corrigés** dans `auth.ts` : `crossSubDomainCookies.enabled` et `useSecureCookies` étaient à `!isProd` (donc actifs en dev) → cookie `Domain=.shipfree.app` + `__Secure-` rejeté par le navigateur sur localhost → toutes les routes auth post-login en **401**. Remis à `isProd`. ⚠️ En prod, mettre le vrai domaine dans `crossSubDomainCookies.domain`.
 - **Inscription** : `register-form` ne redirige vers `/verify` que si `EMAIL_VERIFICATION_ENABLED` (sinon → app directement, l'utilisateur est auto-connecté). En dev, l'OTP n'est de toute façon pas envoyé (`EMAIL_PROVIDER=log`).
+- **Scanner QR** (`@zxing/browser`, `@zxing/library` installées) : la caméra (`getUserMedia`) n'est dispo qu'en **https** ou sur **`localhost`** ; gérer permission refusée / pas de caméra (le composant `src/components/qr/qr-scanner.tsx` le fait + saisie manuelle). **Convention QR** : tout QR encode l'**URL absolue même-origine** de la page deep-link de l'entité (cf. §15) ; en dev ces URLs pointent `localhost:3001` → non scannables depuis un mobile, OK en prod.
 
 ---
 
@@ -343,3 +345,34 @@ Module calqué **à l'identique** sur le Parc d'équipements. Un **dépôt** app
 
 ### Reste à faire (validation utilisateur)
 Test navigateur : création entrepôt + véhicule, entretien km/date → recalcul prochaine échéance, upload doc assurance avec date d'expiration → badge « Expire le », tâche de rappel) + **anti-fuite inter-org** sur `/depots`.
+
+---
+
+## 15. Matériel (parc outillage & machines) + scanner QR global — livré (`typecheck`/`lint` ✅, migration 0010 appliquée)
+
+Module calqué sur **Dépôts** (§14) et la fonctionnalité **étiquette QR** des équipements. Un **matériel** = actif **unitaire** de l'organisation, **table unique `tool`** avec `kind = outil | machine`. Cadrage : « Extension v1.3 ». **Stock par quantités toujours hors périmètre** (note CLAUDE.md §1 mise à jour : matériel unitaire DEDANS).
+
+### Migration 0010
+`migrations/0010_furry_lilandra.sql` : 7 enums (`tool_kind`, `tool_status`, `tool_maintenance_type`, `tool_document_category`, `fuel_level`, `tool_issue_severity`, `tool_issue_status`) + 5 tables (`tool`, `tool_maintenance`, `tool_transfer`, `tool_issue`, `tool_document`) + colonne `activity.toolId` + index/FK. ⚠️ **Appliquée MANUELLEMENT en SQL** (Supabase était en pause → DNS `ENOTFOUND` depuis le poste). Le journal Drizzle `drizzle.__drizzle_migrations` **n'a donc pas** la ligne 0010 → au prochain `migrate.ts`/`migrate:prod`, soit insérer la ligne du journal, soit s'assurer que 0010 n'est pas rejouée.
+
+### Schéma & couches (`src/database/schema.ts`, `src/services/crm/tool*.ts`, `src/validation/tool*.ts`)
+- `tool` (soft-delete) : `kind`, `status`, **localisation courante exclusive** `currentDepotId` **xor** `currentSiteId` (garantie côté service), champs machine nullables `fuelLevel`/`engineHours`, `nextMaintenanceDate` recalculé. `tool_maintenance` (soft-delete, compteur **horaire** `hours`/`nextDueHours`). `tool_transfer` (hard-delete, append-only). `tool_issue` (cycle par `status`, pas de soft-delete). `tool_document` (hard-delete, **pas d'`expiresAt`**).
+- Services : `tool.ts` (liste filtrable + `hasOpenIssue` via EXISTS + `listToolsForDepot/Site` + `setFuelLevel`/`updateEngineHours`), `tool-transfer.ts` (`createTransfer` **transactionnel** : statut auto → chantier `en_service` / → dépôt `disponible`, **sans écraser** `en_panne`/`en_reparation`/`hors_service`/`perdu`), `tool-issue.ts` (bloquant ⇒ `en_panne` ; résolution du dernier problème ouvert d'un `en_panne` ⇒ `disponible`), `tool-maintenance.ts`, `tool-document.ts` (chemin `org/tools/<id>/…`).
+
+### Permissions (`src/lib/auth/permissions.ts`) + libellés
+- `tool` (admin/conducteur complet · commercial/terrain lecture) ; `toolMaintenance` (… · terrain create/read/update · commercial lecture) ; `toolTransfer` (admin/conducteur create/read/delete · terrain create/read · commercial lecture) ; `toolIssue` (admin/conducteur complet · terrain create/read · commercial lecture). Libellés `TOOL_*`/`FUEL_LEVEL_*`/`*_CATEGORY_SUGGESTIONS` dans `labels.ts`.
+
+### UI (FR, mobile-first, Base UI) — `src/app/(main)/materiel/**`
+- Sidebar : entrée **« Matériel »** (icône `Wrench`, gardée `can(role,'tool','read')`) + entrée **« Scanner »** (groupe « Outils », tous rôles authentifiés). `proxy.ts` : `/materiel/:path*` ajouté.
+- `/materiel` liste (filtres type/statut/localisation + recherche + badges Problème/échéance/plein). `/materiel/nouveau` (**dépôt initial requis** + bloc Machine) · `/materiel/[id]/modifier`. `/materiel/[id]` fiche 360 (localisation courante, boutons Transférer/Étiquette, bloc Machine inline plein+compteur, Entretiens, Problèmes, Transferts, Tâches `locked.toolId`, Documents). `/materiel/[id]/transfert` (page mobile « scan & déplace ») · `/materiel/[id]/etiquette` (QR → page transfert). Sections « Matériel présent » ajoutées aux fiches **dépôt** et **chantier**.
+
+### Scanner QR global (transverse, réutilisable)
+- `src/components/qr/qr-scanner.tsx` (caméra `@zxing/browser`, repli saisie manuelle) + `scanner-dialog.tsx` (navigue vers le chemin interne sur URL même origine). **Convention** : tout QR encode l'**URL absolue même-origine** de la page deep-link → ajouter une nouvelle entité scannable = imprimer un QR avec l'URL de sa page, sans toucher au scanner.
+
+### ⚠️ Pièges
+- **Caméra** (`getUserMedia`) : **https ou `localhost`** uniquement ; gérer permission refusée / pas de caméra (le composant le fait + saisie manuelle). En **dev**, les QR encodent `http://localhost:3001/...` → **non scannables depuis un mobile** (OK en prod https).
+- Base UI `Select.onValueChange` reçoit `string | null` → typer les handlers `(v: string | null)` (sinon TS2322).
+- Nouvelle dépendance : `@zxing/browser @zxing/library` (installées). Migration jouée à la main → voir note journal Drizzle ci-dessus.
+
+### Reste à faire (validation utilisateur)
+Test navigateur sur `localhost:3001` : créer outil + machine (dépôt requis), transférer vers chantier (statut → `en_service`, apparaît dans « Matériel présent » du chantier) puis vers dépôt (→ `disponible`), signaler un problème **bloquant** (→ `en_panne`, transfert ne réécrase pas) puis le résoudre (→ `disponible`), entretien avec échéance → recalcul + tâche de rappel, upload document, étiquette QR, scanner (saisie manuelle d'une URL `/materiel/<id>/transfert`) + **anti-fuite inter-org** sur `/materiel`.

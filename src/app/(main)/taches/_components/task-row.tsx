@@ -12,6 +12,7 @@ import {
   Trash2,
   User,
   Warehouse,
+  Wrench,
 } from 'lucide-react'
 
 import {
@@ -46,6 +47,8 @@ export interface TaskView {
   equipmentName: string | null
   depotId: string | null
   depotName: string | null
+  toolId: string | null
+  toolName: string | null
   coAssignees: { id: string; name: string }[]
 }
 
@@ -158,6 +161,14 @@ export const TaskRow = ({ task, canEdit, onEdit, showAssignee }: TaskRowProps) =
               className='inline-flex items-center gap-1 hover:underline'
             >
               <Warehouse className='size-3' /> {task.depotName}
+            </Link>
+          )}
+          {task.toolId && task.toolName && (
+            <Link
+              href={`/materiel/${task.toolId}`}
+              className='inline-flex items-center gap-1 hover:underline'
+            >
+              <Wrench className='size-3' /> {task.toolName}
             </Link>
           )}
         </div>
