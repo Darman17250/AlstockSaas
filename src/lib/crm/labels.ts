@@ -277,6 +277,83 @@ export const formatCost = (amount: string | number | null | undefined): string |
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value)
 }
 
+// ── Stock ───────────────────────────────────────────────────────────────────
+
+/** Libellés courts des unités de produit (UI, abréviations BTP). */
+export const PRODUCT_UNIT_LABELS: Record<string, string> = {
+  u: 'Unité',
+  ml: 'Mètre linéaire',
+  m2: 'm²',
+  m3: 'm³',
+  kg: 'Kilogramme',
+  t: 'Tonne',
+  l: 'Litre',
+  sac: 'Sac',
+  palette: 'Palette',
+  rouleau: 'Rouleau',
+  boite: 'Boîte',
+  lot: 'Lot',
+  h: 'Heure',
+}
+
+/** Symbole compact d'unité, accolé à une quantité (ex. « 12 m² »). */
+export const PRODUCT_UNIT_SYMBOLS: Record<string, string> = {
+  u: 'u',
+  ml: 'ml',
+  m2: 'm²',
+  m3: 'm³',
+  kg: 'kg',
+  t: 't',
+  l: 'L',
+  sac: 'sac',
+  palette: 'pal.',
+  rouleau: 'rlx',
+  boite: 'boîte',
+  lot: 'lot',
+  h: 'h',
+}
+
+export const PRODUCT_UNITS = [
+  'u',
+  'ml',
+  'm2',
+  'm3',
+  'kg',
+  't',
+  'l',
+  'sac',
+  'palette',
+  'rouleau',
+  'boite',
+  'lot',
+  'h',
+] as const
+
+export const STOCK_MOVEMENT_TYPE_LABELS: Record<string, string> = {
+  reception: 'Entrée',
+  transfer: 'Transfert',
+  return: 'Retour chantier',
+  adjustment: 'Régularisation',
+}
+
+export const PURCHASE_STATUS_LABELS: Record<string, string> = {
+  brouillon: 'En cours',
+  validee: 'Validé',
+  annulee: 'Annulé',
+}
+
+/** Quantité formatée (jusqu'à 3 décimales, sans zéros inutiles) + unité. */
+export const formatQuantity = (
+  qty: string | number | null | undefined,
+  unit?: string | null
+): string => {
+  const value = typeof qty === 'string' ? Number(qty) : (qty ?? 0)
+  const safe = Number.isNaN(value) ? 0 : value
+  const formatted = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 3 }).format(safe)
+  const symbol = unit ? PRODUCT_UNIT_SYMBOLS[unit] : null
+  return symbol ? `${formatted} ${symbol}` : formatted
+}
+
 /** Montant d'affaire formaté en euros (ou devise fournie). `null` si absent. */
 export const formatDealAmount = (
   amount: string | number | null | undefined,

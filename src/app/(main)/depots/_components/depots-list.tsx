@@ -30,8 +30,7 @@ export const DepotsList = ({ items }: DepotsListProps) => {
       {items.map((d) => {
         const isVehicle = d.type === 'vehicule'
         const overdue = d.nextMaintenanceDate !== null && d.nextMaintenanceDate < today
-        const dueSoon =
-          !overdue && d.nextMaintenanceDate !== null && d.nextMaintenanceDate <= soon
+        const dueSoon = !overdue && d.nextMaintenanceDate !== null && d.nextMaintenanceDate <= soon
         return (
           <li key={d.id}>
             <Link

@@ -81,7 +81,11 @@ export const listSiteReports = async (
   const ids = rows.map((r) => r.id)
 
   const photoRows = await db
-    .select({ id: siteReportPhoto.id, reportId: siteReportPhoto.reportId, caption: siteReportPhoto.caption })
+    .select({
+      id: siteReportPhoto.id,
+      reportId: siteReportPhoto.reportId,
+      caption: siteReportPhoto.caption,
+    })
     .from(siteReportPhoto)
     .where(
       and(
@@ -125,7 +129,11 @@ const assertNoDuplicate = async (
     isNull(siteReport.deletedAt),
   ]
   if (exceptId) conditions.push(ne(siteReport.id, exceptId))
-  const [row] = await db.select({ id: siteReport.id }).from(siteReport).where(and(...conditions)).limit(1)
+  const [row] = await db
+    .select({ id: siteReport.id })
+    .from(siteReport)
+    .where(and(...conditions))
+    .limit(1)
   if (row) throw new ForbiddenError('Un rapport existe déjà pour ce jour.')
 }
 

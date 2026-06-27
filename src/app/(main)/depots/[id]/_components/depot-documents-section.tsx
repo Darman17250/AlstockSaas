@@ -189,7 +189,11 @@ export const DepotDocumentsSection = ({
             disabled={uploading}
             onClick={() => inputRef.current?.click()}
           >
-            {uploading ? <Loader2 className='size-4 animate-spin' /> : <Upload className='size-4' />}
+            {uploading ? (
+              <Loader2 className='size-4 animate-spin' />
+            ) : (
+              <Upload className='size-4' />
+            )}
             Ajouter
           </Button>
         </div>

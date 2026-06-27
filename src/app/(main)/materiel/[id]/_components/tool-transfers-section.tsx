@@ -15,13 +15,7 @@ const formatDateTime = (d: Date) =>
     minute: '2-digit',
   }).format(new Date(d))
 
-const Place = ({
-  depotName,
-  siteName,
-}: {
-  depotName: string | null
-  siteName: string | null
-}) => {
+const Place = ({ depotName, siteName }: { depotName: string | null; siteName: string | null }) => {
   if (depotName)
     return (
       <span className='inline-flex items-center gap-1'>

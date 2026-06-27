@@ -53,7 +53,11 @@ export const ToolDetailActions = ({
   return (
     <div className='flex flex-wrap items-center justify-end gap-2'>
       {canTransfer && (
-        <Button variant='outline' size='sm' render={<Link href={`/materiel/${toolId}/transfert`} />}>
+        <Button
+          variant='outline'
+          size='sm'
+          render={<Link href={`/materiel/${toolId}/transfert`} />}
+        >
           <ArrowLeftRight className='size-4' /> Transférer
         </Button>
       )}
@@ -76,7 +80,8 @@ export const ToolDetailActions = ({
             <AlertDialogHeader>
               <AlertDialogTitle>Supprimer ce matériel ?</AlertDialogTitle>
               <AlertDialogDescription>
-                « {toolName} » et son historique (entretiens, transferts, problèmes) seront archivés.
+                « {toolName} » et son historique (entretiens, transferts, problèmes) seront
+                archivés.
               </AlertDialogDescription>
             </AlertDialogHeader>
             {error && <p className='px-6 text-sm text-destructive-foreground'>{error}</p>}

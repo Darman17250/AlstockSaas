@@ -66,7 +66,9 @@ export default async function MaterielEtiquettePage({ params }: EtiquettePagePro
         <div className='w-full'>
           <p className='truncate text-base font-bold'>{tool.name}</p>
           <p className='truncate text-sm'>{tool.category ?? TOOL_KIND_LABELS[tool.kind]}</p>
-          {tool.reference && <p className='mt-1 truncate text-xs text-gray-600'>Réf. {tool.reference}</p>}
+          {tool.reference && (
+            <p className='mt-1 truncate text-xs text-gray-600'>Réf. {tool.reference}</p>
+          )}
           {tool.serialNumber && (
             <p className='truncate text-xs text-gray-600'>N° {tool.serialNumber}</p>
           )}

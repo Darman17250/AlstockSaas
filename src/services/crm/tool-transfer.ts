@@ -51,10 +51,7 @@ export const listTransfersForTool = async (
     .leftJoin(member, eq(toolTransfer.transferredById, member.id))
     .leftJoin(user, eq(member.userId, user.id))
     .where(
-      and(
-        eq(toolTransfer.toolId, toolId),
-        eq(toolTransfer.organizationId, ctx.organizationId)
-      )
+      and(eq(toolTransfer.toolId, toolId), eq(toolTransfer.organizationId, ctx.organizationId))
     )
     .orderBy(desc(toolTransfer.transferredAt))
 

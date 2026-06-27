@@ -1,16 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import {
-  Calendar,
-  Car,
-  ChevronLeft,
-  Fuel,
-  Gauge,
-  MapPin,
-  Tag,
-  User,
-  Warehouse,
-} from 'lucide-react'
+import { Calendar, Car, ChevronLeft, Fuel, Gauge, MapPin, Tag, User, Warehouse } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -22,8 +12,10 @@ import { getDepot } from '@/services/crm/depot'
 import { listDepotDocuments } from '@/services/crm/depot-document'
 import { listMaintenanceForDepot } from '@/services/crm/depot-maintenance'
 import { listTasksForDepot, type TaskItem } from '@/services/crm/task'
+import { getLocationStockValue, listStockForLocation } from '@/services/crm/stock'
 import { listToolsForDepot } from '@/services/crm/tool'
 import { listOrgMembers } from '@/services/org/members'
+import { LocationStockSection } from '../../stock/_components/location-stock-section'
 import { ToolsPresentSection } from '../../materiel/_components/tools-present-section'
 import { TasksSection } from '../../taches/_components/tasks-section'
 import { DepotDetailActions } from './_components/depot-detail-actions'
@@ -80,6 +72,7 @@ export default async function DepotPage({ params }: DepotPageProps) {
   const canReadTasks = can(ctx.role, 'activity', 'read')
   const canReadTools = can(ctx.role, 'tool', 'read')
   const canTransferTools = can(ctx.role, 'toolTransfer', 'create')
+  const canReadStock = can(ctx.role, 'product', 'read')
 
   const isVehicle = depot.type === 'vehicule'
   const { items, totalCost } = await listMaintenanceForDepot(ctx, id)
@@ -87,6 +80,10 @@ export default async function DepotPage({ params }: DepotPageProps) {
   const documents = await listDepotDocuments(ctx, id)
   const tasks = canReadTasks ? await listTasksForDepot(ctx, id) : []
   const toolsPresent = canReadTools ? await listToolsForDepot(ctx, id) : []
+  const stockLoc = { depotId: id, siteId: null }
+  const [stockItems, stockValue] = canReadStock
+    ? await Promise.all([listStockForLocation(ctx, stockLoc), getLocationStockValue(ctx, stockLoc)])
+    : [[], 0]
   const storageConfigured = isStorageConfigured()
 
   const overdue = depot.nextMaintenanceDate !== null && depot.nextMaintenanceDate < todayKey()
@@ -145,7 +142,9 @@ export default async function DepotPage({ params }: DepotPageProps) {
             {depot.mileage !== null && <Line icon={Gauge}>{formatKm(depot.mileage)}</Line>}
             {depot.year && <Line icon={Calendar}>Année {depot.year}</Line>}
             {depot.firstRegistrationDate && (
-              <Line icon={Calendar}>1re circulation : {formatDate(depot.firstRegistrationDate)}</Line>
+              <Line icon={Calendar}>
+                1re circulation : {formatDate(depot.firstRegistrationDate)}
+              </Line>
             )}
             {depot.vin && <Line icon={Tag}>VIN : {depot.vin}</Line>}
           </section>
@@ -191,6 +190,8 @@ export default async function DepotPage({ params }: DepotPageProps) {
         {canReadTools && (
           <ToolsPresentSection items={toolsPresent} canTransfer={canTransferTools} />
         )}
+
+        {canReadStock && <LocationStockSection items={stockItems} totalValue={stockValue} />}
 
         {canReadTasks && (
           <TasksSection

@@ -39,7 +39,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ ok: true, id: doc.id }, { status: 201 })
   } catch (e) {
     if (e instanceof z.ZodError)
-      return NextResponse.json({ error: e.issues[0]?.message ?? 'Données invalides' }, { status: 400 })
+      return NextResponse.json(
+        { error: e.issues[0]?.message ?? 'Données invalides' },
+        { status: 400 }
+      )
     if (e instanceof UnauthorizedError)
       return NextResponse.json({ error: 'Authentification requise' }, { status: 401 })
     if (e instanceof ForbiddenError) return NextResponse.json({ error: e.message }, { status: 403 })

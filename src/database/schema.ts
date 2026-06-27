@@ -379,12 +379,7 @@ export const maintenanceTypeEnum = pgEnum('maintenance_type', [
 
 // Dépôts & véhicules : emplacements appartenant à l'organisation (entrepôt,
 // atelier, véhicule…), distincts des `client_location` (qui sont chez le client).
-export const depotTypeEnum = pgEnum('depot_type', [
-  'entrepot',
-  'atelier',
-  'vehicule',
-  'autre',
-])
+export const depotTypeEnum = pgEnum('depot_type', ['entrepot', 'atelier', 'vehicule', 'autre'])
 export const depotMaintenanceTypeEnum = pgEnum('depot_maintenance_type', [
   'revision',
   'vidange',
@@ -444,12 +439,34 @@ export const fuelLevelEnum = pgEnum('fuel_level', [
   'trois_quarts',
   'plein',
 ])
-export const toolIssueSeverityEnum = pgEnum('tool_issue_severity', [
-  'mineur',
-  'majeur',
-  'bloquant',
-])
+export const toolIssueSeverityEnum = pgEnum('tool_issue_severity', ['mineur', 'majeur', 'bloquant'])
 export const toolIssueStatusEnum = pgEnum('tool_issue_status', ['ouvert', 'en_cours', 'resolu'])
+
+// Stock : produits consommables fongibles (quantités) répartis sur plusieurs
+// dépôts et chantiers. Distinct de `tool` (actifs unitaires). Unité fixe (enum),
+// coût moyen pondéré stocké sur le produit, mouvements append-only.
+export const productUnitEnum = pgEnum('product_unit', [
+  'u',
+  'ml',
+  'm2',
+  'm3',
+  'kg',
+  't',
+  'l',
+  'sac',
+  'palette',
+  'rouleau',
+  'boite',
+  'lot',
+  'h',
+])
+export const stockMovementTypeEnum = pgEnum('stock_movement_type', [
+  'reception',
+  'transfer',
+  'return',
+  'adjustment',
+])
+export const purchaseStatusEnum = pgEnum('purchase_status', ['brouillon', 'validee', 'annulee'])
 
 // ============================================================================
 // Tables métier — toutes portent organizationId (non null, indexé) pour le
@@ -857,7 +874,9 @@ export const toolTransfer = pgTable(
     toDepotId: uuid('to_depot_id').references(() => depot.id, { onDelete: 'set null' }),
     toSiteId: uuid('to_site_id').references(() => site.id, { onDelete: 'set null' }),
     transferredAt: timestamp('transferred_at').defaultNow().notNull(),
-    transferredById: text('transferred_by_id').references(() => member.id, { onDelete: 'set null' }),
+    transferredById: text('transferred_by_id').references(() => member.id, {
+      onDelete: 'set null',
+    }),
     note: text('note'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
@@ -922,6 +941,252 @@ export const toolDocument = pgTable(
   (table) => [
     index('tool_document_organizationId_idx').on(table.organizationId),
     index('tool_document_toolId_idx').on(table.toolId),
+  ]
+)
+
+// ============================================================================
+// Stock — produits consommables, niveaux par localisation, mouvements, achats.
+// ============================================================================
+
+// Catégorie de produit. Une catégorie possède plusieurs sous-catégories.
+export const productCategory = pgTable(
+  'product_category',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => [index('product_category_organizationId_idx').on(table.organizationId)]
+)
+
+export const productSubcategory = pgTable(
+  'product_subcategory',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    categoryId: uuid('category_id')
+      .notNull()
+      .references(() => productCategory.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => [
+    index('product_subcategory_organizationId_idx').on(table.organizationId),
+    index('product_subcategory_categoryId_idx').on(table.categoryId),
+  ]
+)
+
+// Produit (fiche catalogue). La quantité n'est PAS stockée ici : elle dérive de
+// la somme des `stock_level`. `weightedAvgPrice` = coût moyen pondéré (WAC),
+// path-dependent, recalculé à chaque entrée (réception / stock initial).
+export const product = pgTable(
+  'product',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    imagePath: text('image_path'),
+    categoryId: uuid('category_id')
+      .notNull()
+      .references(() => productCategory.id, { onDelete: 'restrict' }),
+    subcategoryId: uuid('subcategory_id')
+      .notNull()
+      .references(() => productSubcategory.id, { onDelete: 'restrict' }),
+    unit: productUnitEnum('unit').notNull(),
+    description: text('description'),
+    weightedAvgPrice: decimal('weighted_avg_price', { precision: 12, scale: 4 })
+      .default('0')
+      .notNull(),
+    initialPurchasePrice: decimal('initial_purchase_price', { precision: 12, scale: 4 }),
+    // Seuil d'alerte : alerte « stock bas » quand le stock global (dépôts) passe
+    // au niveau ou en dessous. `null` = pas d'alerte.
+    alertThreshold: decimal('alert_threshold', { precision: 14, scale: 3 }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => [
+    index('product_organizationId_idx').on(table.organizationId),
+    index('product_categoryId_idx').on(table.categoryId),
+    index('product_subcategoryId_idx').on(table.subcategoryId),
+  ]
+)
+
+// Niveau de stock d'un produit sur une localisation (dépôt XOR chantier).
+// Un seul niveau par couple (produit, localisation), garanti par index uniques.
+export const stockLevel = pgTable(
+  'stock_level',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => product.id, { onDelete: 'cascade' }),
+    depotId: uuid('depot_id').references(() => depot.id, { onDelete: 'cascade' }),
+    siteId: uuid('site_id').references(() => site.id, { onDelete: 'cascade' }),
+    quantity: decimal('quantity', { precision: 14, scale: 3 }).default('0').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('stock_level_organizationId_idx').on(table.organizationId),
+    index('stock_level_productId_idx').on(table.productId),
+    index('stock_level_depotId_idx').on(table.depotId),
+    index('stock_level_siteId_idx').on(table.siteId),
+    uniqueIndex('stock_level_product_depot_uidx')
+      .on(table.productId, table.depotId)
+      .where(sql`${table.depotId} is not null`),
+    uniqueIndex('stock_level_product_site_uidx')
+      .on(table.productId, table.siteId)
+      .where(sql`${table.siteId} is not null`),
+  ]
+)
+
+// Journal append-only des mouvements de stock (entrée, transfert, retour, ajust.).
+export const stockMovement = pgTable(
+  'stock_movement',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => product.id, { onDelete: 'cascade' }),
+    type: stockMovementTypeEnum('type').notNull(),
+    fromDepotId: uuid('from_depot_id').references(() => depot.id, { onDelete: 'set null' }),
+    fromSiteId: uuid('from_site_id').references(() => site.id, { onDelete: 'set null' }),
+    toDepotId: uuid('to_depot_id').references(() => depot.id, { onDelete: 'set null' }),
+    toSiteId: uuid('to_site_id').references(() => site.id, { onDelete: 'set null' }),
+    quantity: decimal('quantity', { precision: 14, scale: 3 }).notNull(),
+    // WAC (ou prix d'achat pour une réception) au moment du mouvement, pour valoriser.
+    unitPrice: decimal('unit_price', { precision: 12, scale: 4 }),
+    purchaseId: uuid('purchase_id').references((): AnyPgColumn => purchase.id, {
+      onDelete: 'set null',
+    }),
+    note: text('note'),
+    movedById: text('moved_by_id').references(() => member.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('stock_movement_organizationId_idx').on(table.organizationId),
+    index('stock_movement_productId_idx').on(table.productId),
+    index('stock_movement_createdAt_idx').on(table.createdAt),
+  ]
+)
+
+export const supplier = pgTable(
+  'supplier',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    email: text('email'),
+    phone: text('phone'),
+    addressLine1: text('address_line1'),
+    addressLine2: text('address_line2'),
+    postalCode: text('postal_code'),
+    city: text('city'),
+    country: text('country').default('FR').notNull(),
+    notes: text('notes'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => [index('supplier_organizationId_idx').on(table.organizationId)]
+)
+
+// Achat (bon de réception). `brouillon` = en cours ; `validee` = réceptionné
+// (impacte le stock + recalcule le WAC). Hors périmètre : facturation comptable.
+export const purchase = pgTable(
+  'purchase',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    supplierId: uuid('supplier_id').references(() => supplier.id, { onDelete: 'set null' }),
+    reference: text('reference'),
+    status: purchaseStatusEnum('status').default('brouillon').notNull(),
+    orderDate: date('order_date'),
+    validatedAt: timestamp('validated_at'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => [
+    index('purchase_organizationId_idx').on(table.organizationId),
+    index('purchase_status_idx').on(table.status),
+    index('purchase_supplierId_idx').on(table.supplierId),
+  ]
+)
+
+export const purchaseLine = pgTable(
+  'purchase_line',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    purchaseId: uuid('purchase_id')
+      .notNull()
+      .references(() => purchase.id, { onDelete: 'cascade' }),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => product.id, { onDelete: 'restrict' }),
+    quantity: decimal('quantity', { precision: 14, scale: 3 }).notNull(),
+    unitPrice: decimal('unit_price', { precision: 12, scale: 4 }).notNull(),
+    // Destination renseignée à la validation (dépôt XOR chantier).
+    destinationDepotId: uuid('destination_depot_id').references(() => depot.id, {
+      onDelete: 'set null',
+    }),
+    destinationSiteId: uuid('destination_site_id').references(() => site.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('purchase_line_organizationId_idx').on(table.organizationId),
+    index('purchase_line_purchaseId_idx').on(table.purchaseId),
+    index('purchase_line_productId_idx').on(table.productId),
   ]
 )
 
@@ -1582,4 +1847,72 @@ export const siteReportPhotoRelations = relations(siteReportPhoto, ({ one }) => 
 export const timeEntryRelations = relations(timeEntry, ({ one }) => ({
   site: one(site, { fields: [timeEntry.siteId], references: [site.id] }),
   member: one(member, { fields: [timeEntry.memberId], references: [member.id] }),
+}))
+
+export const productCategoryRelations = relations(productCategory, ({ many }) => ({
+  subcategories: many(productSubcategory),
+  products: many(product),
+}))
+
+export const productSubcategoryRelations = relations(productSubcategory, ({ one, many }) => ({
+  category: one(productCategory, {
+    fields: [productSubcategory.categoryId],
+    references: [productCategory.id],
+  }),
+  products: many(product),
+}))
+
+export const productRelations = relations(product, ({ one, many }) => ({
+  organization: one(organization, {
+    fields: [product.organizationId],
+    references: [organization.id],
+  }),
+  category: one(productCategory, {
+    fields: [product.categoryId],
+    references: [productCategory.id],
+  }),
+  subcategory: one(productSubcategory, {
+    fields: [product.subcategoryId],
+    references: [productSubcategory.id],
+  }),
+  stockLevels: many(stockLevel),
+  movements: many(stockMovement),
+}))
+
+export const stockLevelRelations = relations(stockLevel, ({ one }) => ({
+  product: one(product, { fields: [stockLevel.productId], references: [product.id] }),
+  depot: one(depot, { fields: [stockLevel.depotId], references: [depot.id] }),
+  site: one(site, { fields: [stockLevel.siteId], references: [site.id] }),
+}))
+
+export const stockMovementRelations = relations(stockMovement, ({ one }) => ({
+  product: one(product, { fields: [stockMovement.productId], references: [product.id] }),
+  purchase: one(purchase, { fields: [stockMovement.purchaseId], references: [purchase.id] }),
+  movedBy: one(member, { fields: [stockMovement.movedById], references: [member.id] }),
+}))
+
+export const supplierRelations = relations(supplier, ({ many }) => ({
+  purchases: many(purchase),
+}))
+
+export const purchaseRelations = relations(purchase, ({ one, many }) => ({
+  organization: one(organization, {
+    fields: [purchase.organizationId],
+    references: [organization.id],
+  }),
+  supplier: one(supplier, { fields: [purchase.supplierId], references: [supplier.id] }),
+  lines: many(purchaseLine),
+}))
+
+export const purchaseLineRelations = relations(purchaseLine, ({ one }) => ({
+  purchase: one(purchase, { fields: [purchaseLine.purchaseId], references: [purchase.id] }),
+  product: one(product, { fields: [purchaseLine.productId], references: [product.id] }),
+  destinationDepot: one(depot, {
+    fields: [purchaseLine.destinationDepotId],
+    references: [depot.id],
+  }),
+  destinationSite: one(site, {
+    fields: [purchaseLine.destinationSiteId],
+    references: [site.id],
+  }),
 }))

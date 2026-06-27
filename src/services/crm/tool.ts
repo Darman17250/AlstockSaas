@@ -178,10 +178,7 @@ export const listTools = async (
     .limit(params.pageSize)
     .offset(offset)
 
-  const [{ count }] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(tool)
-    .where(where)
+  const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(tool).where(where)
 
   return { items, total: count, page: params.page, pageSize: params.pageSize }
 }

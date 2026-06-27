@@ -42,9 +42,7 @@ const toError = (e: unknown): string => {
 
 // ── Dépôts ───────────────────────────────────────────────────────────────
 
-export const createDepotAction = async (
-  input: unknown
-): Promise<ActionResult<{ id: string }>> => {
+export const createDepotAction = async (input: unknown): Promise<ActionResult<{ id: string }>> => {
   try {
     const ctx = await requireOrgContext()
     const data = depotCreateSchema.parse(input)

@@ -244,7 +244,11 @@ export const SiteReportsSection = ({
                     <AlertDialog>
                       <AlertDialogTrigger
                         render={
-                          <Button size='icon-sm' variant='ghost' aria-label='Supprimer le rapport' />
+                          <Button
+                            size='icon-sm'
+                            variant='ghost'
+                            aria-label='Supprimer le rapport'
+                          />
                         }
                       >
                         <Trash2 className='size-4 text-destructive-foreground' />
@@ -273,9 +277,7 @@ export const SiteReportsSection = ({
                 </div>
               </div>
 
-              {r.progressNotes && (
-                <p className='whitespace-pre-wrap text-sm'>{r.progressNotes}</p>
-              )}
+              {r.progressNotes && <p className='whitespace-pre-wrap text-sm'>{r.progressNotes}</p>}
               {r.issues && (
                 <p className='whitespace-pre-wrap text-sm text-destructive-foreground'>
                   <span className='font-medium'>Aléas : </span>
@@ -338,7 +340,9 @@ export const SiteReportsSection = ({
                     <SelectTrigger>
                       <SelectValue>
                         {(value) =>
-                          value === NONE ? '— Non précisée' : (WEATHER_LABELS[value as string] ?? '')
+                          value === NONE
+                            ? '— Non précisée'
+                            : (WEATHER_LABELS[value as string] ?? '')
                         }
                       </SelectValue>
                     </SelectTrigger>

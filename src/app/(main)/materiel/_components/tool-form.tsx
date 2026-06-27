@@ -139,7 +139,9 @@ export const ToolForm = ({ mode, toolId, members, depots, initial }: ToolFormPro
               id='name'
               name='name'
               defaultValue={val('name')}
-              placeholder={isMachine ? 'Ex. Nacelle Haulotte Compact 12' : 'Ex. Perceuse Makita HP1631'}
+              placeholder={
+                isMachine ? 'Ex. Nacelle Haulotte Compact 12' : 'Ex. Perceuse Makita HP1631'
+              }
               required
             />
           </div>
@@ -231,7 +233,12 @@ export const ToolForm = ({ mode, toolId, members, depots, initial }: ToolFormPro
           </div>
           <div className='space-y-2'>
             <Label htmlFor='purchaseDate'>Date d'achat</Label>
-            <Input id='purchaseDate' name='purchaseDate' type='date' defaultValue={val('purchaseDate')} />
+            <Input
+              id='purchaseDate'
+              name='purchaseDate'
+              type='date'
+              defaultValue={val('purchaseDate')}
+            />
           </div>
           <div className='space-y-2'>
             <Label htmlFor='purchaseCost'>Coût d'achat (€)</Label>
@@ -269,7 +276,9 @@ export const ToolForm = ({ mode, toolId, members, depots, initial }: ToolFormPro
                 <SelectTrigger>
                   <SelectValue>
                     {(value) =>
-                      value === NONE ? '— Non renseigné' : (FUEL_LEVEL_LABELS[value as string] ?? '')
+                      value === NONE
+                        ? '— Non renseigné'
+                        : (FUEL_LEVEL_LABELS[value as string] ?? '')
                     }
                   </SelectValue>
                 </SelectTrigger>

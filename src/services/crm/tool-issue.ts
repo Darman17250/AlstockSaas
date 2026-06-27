@@ -76,11 +76,7 @@ export const listIssuesForTool = async (
   }))
 }
 
-export const reportIssue = async (
-  ctx: OrgContext,
-  toolId: string,
-  input: ToolIssueReportInput
-) => {
+export const reportIssue = async (ctx: OrgContext, toolId: string, input: ToolIssueReportInput) => {
   requirePermission(ctx, 'toolIssue', 'create')
   await assertToolInOrg(ctx, toolId)
 
@@ -115,9 +111,7 @@ export const resolveIssue = async (ctx: OrgContext, issueId: string): Promise<vo
     const [issue] = await tx
       .select({ toolId: toolIssue.toolId })
       .from(toolIssue)
-      .where(
-        and(eq(toolIssue.id, issueId), eq(toolIssue.organizationId, ctx.organizationId))
-      )
+      .where(and(eq(toolIssue.id, issueId), eq(toolIssue.organizationId, ctx.organizationId)))
       .limit(1)
 
     if (!issue) throw new NotFoundError('Problème introuvable')

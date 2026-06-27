@@ -93,8 +93,8 @@ export const QrScanner = ({ onResult, active }: QrScannerProps) => {
       {cameraDown && (
         <p className='rounded-md bg-muted p-3 text-sm text-muted-foreground'>
           {state === 'denied'
-            ? "Accès à la caméra refusé. Autorisez-la dans votre navigateur, ou saisissez un code ci-dessous."
-            : "Aucune caméra disponible. Saisissez un code ci-dessous."}
+            ? 'Accès à la caméra refusé. Autorisez-la dans votre navigateur, ou saisissez un code ci-dessous.'
+            : 'Aucune caméra disponible. Saisissez un code ci-dessous.'}
         </p>
       )}
 

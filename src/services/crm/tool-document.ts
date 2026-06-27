@@ -120,7 +120,9 @@ export const getToolDocumentDownload = async (
   const [row] = await db
     .select({ storagePath: toolDocument.storagePath, fileName: toolDocument.fileName })
     .from(toolDocument)
-    .where(and(eq(toolDocument.id, documentId), eq(toolDocument.organizationId, ctx.organizationId)))
+    .where(
+      and(eq(toolDocument.id, documentId), eq(toolDocument.organizationId, ctx.organizationId))
+    )
     .limit(1)
 
   if (!row) throw new NotFoundError('Document introuvable')
@@ -135,7 +137,9 @@ export const deleteToolDocument = async (ctx: OrgContext, documentId: string): P
   const [row] = await db
     .select({ id: toolDocument.id, storagePath: toolDocument.storagePath })
     .from(toolDocument)
-    .where(and(eq(toolDocument.id, documentId), eq(toolDocument.organizationId, ctx.organizationId)))
+    .where(
+      and(eq(toolDocument.id, documentId), eq(toolDocument.organizationId, ctx.organizationId))
+    )
     .limit(1)
 
   if (!row) throw new NotFoundError('Document introuvable')

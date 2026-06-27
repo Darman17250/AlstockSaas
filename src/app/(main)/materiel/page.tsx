@@ -26,7 +26,12 @@ export default async function MaterielPage({ searchParams }: MaterielPageProps) 
   const [depots, sites] = await Promise.all([listDepotOptions(ctx), listSiteOptions(ctx)])
 
   const hasFilters = Boolean(
-    params.search || params.kind || params.status || params.category || params.depotId || params.siteId
+    params.search ||
+      params.kind ||
+      params.status ||
+      params.category ||
+      params.depotId ||
+      params.siteId
   )
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
+  Boxes,
   Briefcase,
   Building,
   HardHat,
@@ -11,6 +12,7 @@ import {
   ListChecks,
   LogOut,
   ScanLine,
+  ShoppingCart,
   Users,
   UsersRound,
   Warehouse,
@@ -50,6 +52,8 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Chantiers', href: '/chantiers', icon: HardHat, resource: 'site' },
   { label: 'Dépôts', href: '/depots', icon: Warehouse, resource: 'depot' },
   { label: 'Matériel', href: '/materiel', icon: Wrench, resource: 'tool' },
+  { label: 'Stock', href: '/stock', icon: Boxes, resource: 'product' },
+  { label: 'Achats', href: '/achats', icon: ShoppingCart, resource: 'purchase' },
   { label: 'Tâches', href: '/taches', icon: ListChecks, resource: 'activity' },
   { label: 'Équipe', href: '/equipe', icon: UsersRound, roles: ['owner', 'admin'] },
 ]

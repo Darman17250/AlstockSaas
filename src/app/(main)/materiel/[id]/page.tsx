@@ -147,7 +147,9 @@ export default async function MaterielDetailPage({ params }: MaterielPageProps) 
           {tool.purchaseDate && (
             <Line icon={Calendar}>Acheté le {formatDate(tool.purchaseDate)}</Line>
           )}
-          {tool.purchaseCost && <Line icon={Tag}>Coût d'achat : {formatCost(tool.purchaseCost)}</Line>}
+          {tool.purchaseCost && (
+            <Line icon={Tag}>Coût d'achat : {formatCost(tool.purchaseCost)}</Line>
+          )}
         </section>
 
         {isMachine && (

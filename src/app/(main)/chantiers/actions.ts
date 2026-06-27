@@ -164,10 +164,7 @@ export const updateSiteReportAction = async (
   }
 }
 
-export const deleteSiteReportAction = async (
-  id: string,
-  siteId: string
-): Promise<ActionResult> => {
+export const deleteSiteReportAction = async (id: string, siteId: string): Promise<ActionResult> => {
   try {
     const ctx = await requireOrgContext()
     await softDeleteSiteReport(ctx, id)

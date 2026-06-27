@@ -62,8 +62,10 @@ export const MaterielFilters = ({ depots, sites }: MaterielFiltersProps) => {
 
   const locationLabel = (value: string): string => {
     if (value === ALL) return 'Toute localisation'
-    if (value.startsWith(DEPOT)) return depots.find((d) => d.id === value.slice(DEPOT.length))?.name ?? ''
-    if (value.startsWith(SITE)) return sites.find((s) => s.id === value.slice(SITE.length))?.name ?? ''
+    if (value.startsWith(DEPOT))
+      return depots.find((d) => d.id === value.slice(DEPOT.length))?.name ?? ''
+    if (value.startsWith(SITE))
+      return sites.find((s) => s.id === value.slice(SITE.length))?.name ?? ''
     return ''
   }
 
@@ -82,7 +84,9 @@ export const MaterielFilters = ({ depots, sites }: MaterielFiltersProps) => {
         <Select value={searchParams.get('kind') ?? ALL} onValueChange={(v) => pushParam('kind', v)}>
           <SelectTrigger size='sm' className='w-36'>
             <SelectValue>
-              {(value) => (value === ALL ? 'Tous types' : (TOOL_KIND_LABELS[value as string] ?? ''))}
+              {(value) =>
+                value === ALL ? 'Tous types' : (TOOL_KIND_LABELS[value as string] ?? '')
+              }
             </SelectValue>
           </SelectTrigger>
           <SelectContent>

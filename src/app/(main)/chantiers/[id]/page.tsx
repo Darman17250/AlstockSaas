@@ -24,8 +24,10 @@ import { listSiteMessages } from '@/services/crm/site-message'
 import { listSiteTeam } from '@/services/crm/site-member'
 import { listSiteReports } from '@/services/crm/site-report'
 import { listTasksForSite, type TaskItem } from '@/services/crm/task'
+import { getLocationStockValue, listStockForLocation } from '@/services/crm/stock'
 import { listToolsForSite } from '@/services/crm/tool'
 import { listOrgMembers } from '@/services/org/members'
+import { LocationStockSection } from '../../stock/_components/location-stock-section'
 import { ToolsPresentSection } from '../../materiel/_components/tools-present-section'
 import { TasksSection } from '../../taches/_components/tasks-section'
 import { DocumentsSection } from './_components/documents-section'
@@ -89,6 +91,11 @@ export default async function SitePage({ params }: SitePageProps) {
   const canReadTools = can(ctx.role, 'tool', 'read')
   const canTransferTools = can(ctx.role, 'toolTransfer', 'create')
   const toolsPresent = canReadTools ? await listToolsForSite(ctx, id) : []
+  const canReadStock = can(ctx.role, 'product', 'read')
+  const stockLoc = { depotId: null, siteId: id }
+  const [stockItems, stockValue] = canReadStock
+    ? await Promise.all([listStockForLocation(ctx, stockLoc), getLocationStockValue(ctx, stockLoc)])
+    : [[], 0]
   // Liste des membres org partagée par l'équipe, les tâches et les mentions du chat.
   const orgMembers = await listOrgMembers(ctx)
   const taskMembers = canEditTasks ? orgMembers : []
@@ -192,6 +199,8 @@ export default async function SitePage({ params }: SitePageProps) {
         {canReadTools && (
           <ToolsPresentSection items={toolsPresent} canTransfer={canTransferTools} />
         )}
+
+        {canReadStock && <LocationStockSection items={stockItems} totalValue={stockValue} />}
 
         <SiteChat
           siteId={data.id}

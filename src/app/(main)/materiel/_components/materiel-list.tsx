@@ -2,11 +2,7 @@ import Link from 'next/link'
 import { AlertTriangle, Forklift, Fuel, MapPin, User, Wrench } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
-import {
-  FUEL_LEVEL_LABELS,
-  TOOL_KIND_LABELS,
-  TOOL_STATUS_LABELS,
-} from '@/lib/crm/labels'
+import { FUEL_LEVEL_LABELS, TOOL_KIND_LABELS, TOOL_STATUS_LABELS } from '@/lib/crm/labels'
 import type { ToolListItem } from '@/services/crm/tool'
 
 interface MaterielListProps {
@@ -26,11 +22,7 @@ const inDaysKey = (days: number) => {
 
 /** Couleur de badge selon le statut (sobre, hors disponible/en service). */
 const statusClass = (status: string): string =>
-  status === 'disponible'
-    ? ''
-    : status === 'en_service'
-      ? ''
-      : 'text-destructive-foreground'
+  status === 'disponible' ? '' : status === 'en_service' ? '' : 'text-destructive-foreground'
 
 export const MaterielList = ({ items }: MaterielListProps) => {
   const today = todayKey()
@@ -84,7 +76,10 @@ export const MaterielList = ({ items }: MaterielListProps) => {
                     </Badge>
                   )}
                   {(overdue || dueSoon) && (
-                    <Badge variant='outline' className={overdue ? 'text-destructive-foreground' : ''}>
+                    <Badge
+                      variant='outline'
+                      className={overdue ? 'text-destructive-foreground' : ''}
+                    >
                       <Wrench className='size-3' /> {overdue ? 'En retard' : 'Bientôt'}
                     </Badge>
                   )}

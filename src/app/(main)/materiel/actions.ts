@@ -27,7 +27,12 @@ import {
 } from '@/services/crm/tool-maintenance'
 import { createTransfer } from '@/services/crm/tool-transfer'
 import { taskCreateSchema } from '@/validation/task'
-import { engineHoursSchema, fuelLevelSchema, toolCreateSchema, toolUpdateSchema } from '@/validation/tool'
+import {
+  engineHoursSchema,
+  fuelLevelSchema,
+  toolCreateSchema,
+  toolUpdateSchema,
+} from '@/validation/tool'
 import { toolIssueReportSchema } from '@/validation/tool-issue'
 import {
   toolMaintenanceCreateSchema,
@@ -100,7 +105,10 @@ export const setFuelLevelAction = async (id: string, input: unknown): Promise<Ac
   }
 }
 
-export const updateEngineHoursAction = async (id: string, input: unknown): Promise<ActionResult> => {
+export const updateEngineHoursAction = async (
+  id: string,
+  input: unknown
+): Promise<ActionResult> => {
   try {
     const ctx = await requireOrgContext()
     const { engineHours } = engineHoursSchema.parse(input)

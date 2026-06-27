@@ -39,6 +39,11 @@ export const statement = {
   toolMaintenance: crud,
   toolTransfer: crud,
   toolIssue: crud,
+  product: crud,
+  productCategory: crud,
+  supplier: crud,
+  purchase: crud,
+  stockMovement: crud,
 } as const
 
 export const ac = createAccessControl(statement)
@@ -60,6 +65,11 @@ const fullBusiness = {
   toolMaintenance: [...crud],
   toolTransfer: [...crud],
   toolIssue: [...crud],
+  product: [...crud],
+  productCategory: [...crud],
+  supplier: [...crud],
+  purchase: [...crud],
+  stockMovement: [...crud],
 }
 
 // Rôles natifs étendus avec l'accès métier complet.
@@ -85,6 +95,11 @@ export const commercial = ac.newRole({
   toolMaintenance: ['read'],
   toolTransfer: ['read'],
   toolIssue: ['read'],
+  product: ['read'],
+  productCategory: ['read'],
+  supplier: ['read'],
+  purchase: ['read'],
+  stockMovement: ['read'],
 })
 
 export const conducteur = ac.newRole({
@@ -104,6 +119,11 @@ export const conducteur = ac.newRole({
   toolMaintenance: [...crud],
   toolTransfer: ['create', 'read', 'delete'],
   toolIssue: [...crud],
+  product: [...crud],
+  productCategory: ['read'],
+  supplier: [...crud],
+  purchase: [...crud],
+  stockMovement: ['create', 'read', 'delete'],
 })
 
 export const terrain = ac.newRole({
@@ -123,6 +143,11 @@ export const terrain = ac.newRole({
   toolMaintenance: ['create', 'read', 'update'],
   toolTransfer: ['create', 'read'],
   toolIssue: ['create', 'read'],
+  product: ['read'],
+  productCategory: ['read'],
+  supplier: ['read'],
+  purchase: ['read'],
+  stockMovement: ['create', 'read'],
 })
 
 export const roles = { owner, admin, member, commercial, conducteur, terrain }
@@ -145,6 +170,11 @@ export type BusinessResource =
   | 'toolMaintenance'
   | 'toolTransfer'
   | 'toolIssue'
+  | 'product'
+  | 'productCategory'
+  | 'supplier'
+  | 'purchase'
+  | 'stockMovement'
 export type Action = (typeof crud)[number]
 
 /** Liste des rôles assignables à l'invitation (hors `owner`, réservé au créateur). */

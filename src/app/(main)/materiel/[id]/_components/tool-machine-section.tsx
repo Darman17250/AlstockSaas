@@ -71,7 +71,9 @@ export const ToolMachineSection = ({
           <Select value={fuel} onValueChange={saveFuel} disabled={!canEdit}>
             <SelectTrigger>
               <SelectValue>
-                {(value) => (value ? (FUEL_LEVEL_LABELS[value as string] ?? '') : '— Non renseigné')}
+                {(value) =>
+                  value ? (FUEL_LEVEL_LABELS[value as string] ?? '') : '— Non renseigné'
+                }
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -106,7 +108,11 @@ export const ToolMachineSection = ({
                 disabled={savingHours || hours === ''}
                 onClick={saveHours}
               >
-                {savingHours ? <Loader2 className='size-4 animate-spin' /> : <Check className='size-4' />}
+                {savingHours ? (
+                  <Loader2 className='size-4 animate-spin' />
+                ) : (
+                  <Check className='size-4' />
+                )}
               </Button>
             )}
           </div>

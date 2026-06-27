@@ -199,7 +199,9 @@ export const ToolIssuesSection = ({
                 {error && <p className='text-sm text-destructive-foreground'>{error}</p>}
               </DialogPanel>
               <DialogFooter>
-                <DialogClose render={<Button variant='outline' type='button' />}>Annuler</DialogClose>
+                <DialogClose render={<Button variant='outline' type='button' />}>
+                  Annuler
+                </DialogClose>
                 <Button type='submit' disabled={submitting}>
                   {submitting ? <Loader2 className='size-4 animate-spin' /> : 'Signaler'}
                 </Button>
