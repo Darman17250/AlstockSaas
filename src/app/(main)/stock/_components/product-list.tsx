@@ -4,6 +4,7 @@ import { AlertTriangle, Package } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { formatCost, formatQuantity } from '@/lib/crm/labels'
 import type { ProductListItem } from '@/services/crm/product'
+import { PrintListCheckbox } from './print-list-controls'
 
 interface ProductListProps {
   items: ProductListItem[]
@@ -12,10 +13,13 @@ interface ProductListProps {
 export const ProductList = ({ items }: ProductListProps) => (
   <ul className='divide-y rounded-lg border'>
     {items.map((p) => (
-      <li key={p.id}>
+      <li key={p.id} className='flex items-center'>
+        <div className='flex shrink-0 items-center pl-4'>
+          <PrintListCheckbox id={p.id} />
+        </div>
         <Link
           href={`/stock/${p.id}`}
-          className='flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/50'
+          className='flex flex-1 items-center gap-3 px-3 py-3 transition-colors hover:bg-accent/50'
         >
           <div className='flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted text-muted-foreground'>
             {p.imagePath ? (

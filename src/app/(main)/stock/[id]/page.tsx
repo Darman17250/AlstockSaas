@@ -12,6 +12,7 @@ import { getProduct } from '@/services/crm/product'
 import { listSiteOptions } from '@/services/crm/site'
 import { getProductStockSummary, listProductDistribution } from '@/services/crm/stock'
 import { listMovementsForProduct } from '@/services/crm/stock-transfer'
+import { AddToPrintButton } from '../_components/print-list-controls'
 import { ProductDetailActions } from './_components/product-detail-actions'
 import { StockMovementsSection } from './_components/stock-movements-section'
 import { StockTransferDialog } from './_components/stock-transfer-dialog'
@@ -87,6 +88,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
           <Button variant='outline' size='sm' render={<Link href={`/stock/${id}/etiquette`} />}>
             <QrCode className='size-4' /> Étiquette
           </Button>
+          <AddToPrintButton id={id} />
           {canTransfer && (
             <StockTransferDialog
               productId={id}

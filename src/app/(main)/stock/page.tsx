@@ -8,6 +8,7 @@ import { can } from '@/lib/auth/permissions'
 import { listProducts } from '@/services/crm/product'
 import { listCategoriesTree } from '@/services/crm/product-category'
 import { productListParamsSchema } from '@/validation/product'
+import { PrintListBar } from './_components/print-list-controls'
 import { ProductFilters } from './_components/product-filters'
 import { ProductList } from './_components/product-list'
 
@@ -44,6 +45,7 @@ export default async function StockPage({ searchParams }: StockPageProps) {
           <p className='text-muted-foreground'>Produits consommables, dépôts et chantiers.</p>
         </div>
         <div className='flex gap-2'>
+          <PrintListBar />
           {canManageCategories && (
             <Button variant='outline' render={<Link href='/stock/categories' />}>
               <FolderTree className='size-4' /> Catégories

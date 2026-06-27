@@ -1,5 +1,5 @@
 import 'server-only'
-import { and, asc, desc, eq, ilike, isNull, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm'
 
 import { db } from '@/database'
 import { product, productCategory, productSubcategory, stockLevel } from '@/database/schema'
@@ -149,6 +149,50 @@ export const listProducts = async (
   })
 
   return { items, total: count, page: params.page, pageSize: params.pageSize }
+}
+
+export interface ProductLabelData {
+  id: string
+  title: string
+  unit: string
+  imagePath: string | null
+  categoryName: string | null
+  subcategoryName: string | null
+}
+
+/**
+ * Produits (données d'étiquette) pour une liste d'ids, filtrés sur l'org.
+ * L'ordre d'entrée est préservé pour stabiliser la planche d'impression.
+ */
+export const listProductsByIds = async (
+  ctx: OrgContext,
+  productIds: string[]
+): Promise<ProductLabelData[]> => {
+  requirePermission(ctx, 'product', 'read')
+  if (productIds.length === 0) return []
+
+  const rows = await db
+    .select({
+      id: product.id,
+      title: product.title,
+      unit: product.unit,
+      imagePath: product.imagePath,
+      categoryName: productCategory.name,
+      subcategoryName: productSubcategory.name,
+    })
+    .from(product)
+    .leftJoin(productCategory, eq(product.categoryId, productCategory.id))
+    .leftJoin(productSubcategory, eq(product.subcategoryId, productSubcategory.id))
+    .where(
+      and(
+        eq(product.organizationId, ctx.organizationId),
+        isNull(product.deletedAt),
+        inArray(product.id, productIds)
+      )
+    )
+
+  const byId = new Map(rows.map((r) => [r.id, r]))
+  return productIds.map((id) => byId.get(id)).filter((r): r is (typeof rows)[number] => r != null)
 }
 
 export const getProduct = async (ctx: OrgContext, id: string) => {
