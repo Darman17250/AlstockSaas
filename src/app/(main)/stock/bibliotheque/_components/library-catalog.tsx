@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, ChevronRight, Loader2, Package } from 'lucide-react'
+import { Check, ChevronRight, Loader2, Package, Plus } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -34,6 +34,7 @@ export const LibraryCatalog = ({ tree, canAdd }: LibraryCatalogProps) => {
   const [loadingSubs, setLoadingSubs] = useState<Set<string>>(new Set())
   const [prodMeta, setProdMeta] = useState<Map<string, { subId: string; catId: string }>>(new Map())
   const [submitting, setSubmitting] = useState(false)
+  const [addingKey, setAddingKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<{ added: number; skipped: number } | null>(null)
 
@@ -143,8 +144,36 @@ export const LibraryCatalog = ({ tree, canAdd }: LibraryCatalogProps) => {
     router.refresh()
   }
 
+  /** Ajout direct de tout le contenu d'une catégorie ou sous-catégorie. */
+  const addAll = async (
+    key: string,
+    scope: { categoryIds?: string[]; subcategoryIds?: string[] }
+  ) => {
+    if (addingKey) return
+    setAddingKey(key)
+    setError(null)
+    setResult(null)
+    const res = await bulkAddLibraryAction({
+      categoryIds: scope.categoryIds ?? [],
+      subcategoryIds: scope.subcategoryIds ?? [],
+      productIds: [],
+    })
+    setAddingKey(null)
+    if (!res.ok) {
+      setError(res.error)
+      return
+    }
+    setResult(res.data)
+    router.refresh()
+  }
+
   return (
     <div className='space-y-4 pb-24'>
+      {error && selectedCount === 0 && (
+        <p className='rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive-foreground'>
+          {error}
+        </p>
+      )}
       {result && (
         <p className='rounded-md border border-primary/20 bg-primary/5 p-3 text-sm'>
           <Check className='mr-1 inline size-4 text-primary' />
@@ -185,6 +214,23 @@ export const LibraryCatalog = ({ tree, canAdd }: LibraryCatalogProps) => {
                   <span className='flex-1 text-sm font-medium'>{cat.name}</span>
                   <span className='shrink-0 text-xs text-muted-foreground'>{cat.productCount}</span>
                 </button>
+                {canAdd && cat.productCount > 0 && (
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    className='shrink-0'
+                    disabled={addingKey !== null}
+                    onClick={() => addAll(`cat:${cat.id}`, { categoryIds: [cat.id] })}
+                  >
+                    {addingKey === `cat:${cat.id}` ? (
+                      <Loader2 className='size-4 animate-spin' />
+                    ) : (
+                      <>
+                        <Plus className='size-4' /> Tout ajouter
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
 
               {catExpanded && (
@@ -223,6 +269,23 @@ export const LibraryCatalog = ({ tree, canAdd }: LibraryCatalogProps) => {
                               {sub.productCount}
                             </span>
                           </button>
+                          {canAdd && sub.productCount > 0 && (
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              className='shrink-0'
+                              disabled={addingKey !== null}
+                              onClick={() => addAll(`sub:${sub.id}`, { subcategoryIds: [sub.id] })}
+                            >
+                              {addingKey === `sub:${sub.id}` ? (
+                                <Loader2 className='size-4 animate-spin' />
+                              ) : (
+                                <>
+                                  <Plus className='size-4' /> Tout ajouter
+                                </>
+                              )}
+                            </Button>
+                          )}
                         </div>
 
                         {subExpanded && (
