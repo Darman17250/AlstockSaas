@@ -10,6 +10,10 @@ export const env = createEnv({
     BILLING_ENABLED: z.boolean().default(false),
     EMAIL_VERIFICATION_ENABLED: z.boolean().default(false),
 
+    // Administration plateforme « Alstock Admin » : liste d'e-mails (séparés par
+    // des virgules) autorisés à gérer la bibliothèque catalogue partagée.
+    ALSTOCK_ADMIN_EMAILS: z.string().optional(),
+
     // Optional: Sentry
     SENTRY_DSN: z.string().optional(),
 
@@ -118,6 +122,7 @@ export const env = createEnv({
     BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
     BILLING_ENABLED: process.env.BILLING_ENABLED,
     EMAIL_VERIFICATION_ENABLED: process.env.EMAIL_VERIFICATION_ENABLED,
+    ALSTOCK_ADMIN_EMAILS: process.env.ALSTOCK_ADMIN_EMAILS,
     SENTRY_DSN: process.env.SENTRY_DSN,
     SUPABASE_URL: process.env.SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,

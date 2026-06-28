@@ -12,6 +12,7 @@ import {
   ListChecks,
   LogOut,
   ScanLine,
+  ShieldCheck,
   ShoppingCart,
   Users,
   UsersRound,
@@ -68,9 +69,16 @@ interface AppSidebarProps {
   role: string
   permissions: PermissionMatrix
   user: { name: string; email: string }
+  isPlatformAdmin?: boolean
 }
 
-export const AppSidebar = ({ orgName, role, permissions, user }: AppSidebarProps) => {
+export const AppSidebar = ({
+  orgName,
+  role,
+  permissions,
+  user,
+  isPlatformAdmin,
+}: AppSidebarProps) => {
   const pathname = usePathname()
   const router = useRouter()
   const [scannerOpen, setScannerOpen] = useState(false)
@@ -138,6 +146,26 @@ export const AppSidebar = ({ orgName, role, permissions, user }: AppSidebarProps
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {isPlatformAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Administration</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    render={<Link href='/admin/bibliotheque' />}
+                    isActive={pathname.startsWith('/admin')}
+                    tooltip='Alstock Admin'
+                  >
+                    <ShieldCheck className='size-4' />
+                    <span>Alstock Admin</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter>

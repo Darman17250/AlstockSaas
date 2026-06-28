@@ -7,6 +7,7 @@ import { db } from '@/database'
 import { organization } from '@/database/schema'
 import { auth } from '@/lib/auth/auth'
 import { getOrgContext } from '@/lib/auth/org-context'
+import { isPlatformAdminEmail } from '@/lib/auth/platform-admin'
 import { AppSidebar } from './_components/app-sidebar'
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
@@ -34,6 +35,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
         role={ctx.role}
         permissions={ctx.permissions}
         user={{ name: session.user.name, email: session.user.email }}
+        isPlatformAdmin={isPlatformAdminEmail(session.user.email)}
       />
       <SidebarInset>
         <header className='flex h-14 items-center gap-2 border-b px-4'>

@@ -1112,6 +1112,81 @@ export const product = pgTable(
   ]
 )
 
+// ============================================================================
+// Bibliothèque catalogue (référence GLOBALE, gérée par l'« Alstock Admin »).
+// Ces tables ne portent PAS d'organizationId : c'est un catalogue partagé en
+// lecture seule pour toutes les organisations (exception assumée, au même titre
+// que les tables du plugin Better-Auth). Seules les fonctions « platform admin »
+// les modifient. Quand une organisation « ajoute » un produit du catalogue, on
+// crée un `product` org-scoped qui référence l'`imagePath` du catalogue (même
+// bucket Supabase, pas de copie de fichier).
+// ============================================================================
+
+export const libraryCategory = pgTable(
+  'library_category',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    // Métier d'appartenance (prépare d'autres corps d'état que plombier/chauffagiste).
+    trade: text('trade').notNull().default('PLOMBIER - CHAUFFAGISTE - FRIGORISTE'),
+    name: text('name').notNull(),
+    position: integer('position').default(0).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => [index('library_category_trade_idx').on(table.trade)]
+)
+
+export const librarySubcategory = pgTable(
+  'library_subcategory',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    categoryId: uuid('category_id')
+      .notNull()
+      .references(() => libraryCategory.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    position: integer('position').default(0).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => [index('library_subcategory_categoryId_idx').on(table.categoryId)]
+)
+
+export const libraryProduct = pgTable(
+  'library_product',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    categoryId: uuid('category_id')
+      .notNull()
+      .references(() => libraryCategory.id, { onDelete: 'restrict' }),
+    subcategoryId: uuid('subcategory_id')
+      .notNull()
+      .references(() => librarySubcategory.id, { onDelete: 'restrict' }),
+    title: text('title').notNull(),
+    description: text('description'),
+    unit: productUnitEnum('unit').notNull(),
+    // Chemin de l'image dans le bucket Supabase partagé (préfixe `library/`).
+    imagePath: text('image_path'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => [
+    index('library_product_categoryId_idx').on(table.categoryId),
+    index('library_product_subcategoryId_idx').on(table.subcategoryId),
+  ]
+)
+
 // Niveau de stock d'un produit sur une localisation (dépôt XOR chantier).
 // Un seul niveau par couple (produit, localisation), garanti par index uniques.
 export const stockLevel = pgTable(
@@ -1982,6 +2057,30 @@ export const stockLevelRelations = relations(stockLevel, ({ one }) => ({
   product: one(product, { fields: [stockLevel.productId], references: [product.id] }),
   depot: one(depot, { fields: [stockLevel.depotId], references: [depot.id] }),
   site: one(site, { fields: [stockLevel.siteId], references: [site.id] }),
+}))
+
+export const libraryCategoryRelations = relations(libraryCategory, ({ many }) => ({
+  subcategories: many(librarySubcategory),
+  products: many(libraryProduct),
+}))
+
+export const librarySubcategoryRelations = relations(librarySubcategory, ({ one, many }) => ({
+  category: one(libraryCategory, {
+    fields: [librarySubcategory.categoryId],
+    references: [libraryCategory.id],
+  }),
+  products: many(libraryProduct),
+}))
+
+export const libraryProductRelations = relations(libraryProduct, ({ one }) => ({
+  category: one(libraryCategory, {
+    fields: [libraryProduct.categoryId],
+    references: [libraryCategory.id],
+  }),
+  subcategory: one(librarySubcategory, {
+    fields: [libraryProduct.subcategoryId],
+    references: [librarySubcategory.id],
+  }),
 }))
 
 export const stockMovementRelations = relations(stockMovement, ({ one }) => ({

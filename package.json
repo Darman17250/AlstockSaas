@@ -13,7 +13,8 @@
     "biome:check": "biome check",
     "generate-migration": "drizzle-kit generate",
     "migrate:local": "bun run ./scripts/migrate.ts",
-    "migrate:prod": "cross-env NODE_ENV=production bun run ./scripts/migrate.ts"
+    "migrate:prod": "cross-env NODE_ENV=production bun run ./scripts/migrate.ts",
+    "seed-library": "bun run ./scripts/seed-library.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.0.0",
@@ -53,6 +54,7 @@
     "react-icons": "^5.5.0",
     "stripe": "^20.1.2",
     "tailwind-merge": "^3.4.0",
+    "xlsx": "^0.18.5",
     "zod": "^4.3.5",
     "zustand": "^5.0.9"
   },

@@ -1,29 +1,33 @@
 import Link from 'next/link'
-import { Boxes, FolderTree, Library, Plus } from 'lucide-react'
+import { FolderTree, Library, Plus } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { requireOrgContext } from '@/lib/auth/org-context'
-import { can } from '@/lib/auth/permissions'
-import { listProducts } from '@/services/crm/product'
-import { listCategoriesTree } from '@/services/crm/product-category'
-import { productListParamsSchema } from '@/validation/product'
-import { PrintListBar } from './_components/print-list-controls'
-import { ProductFilters } from './_components/product-filters'
-import { ProductList } from './_components/product-list'
+import { requirePlatformAdmin } from '@/lib/auth/platform-admin'
+import { listLibraryProductsAdmin, listLibraryTree } from '@/services/admin/library'
+import { libraryListParamsSchema } from '@/validation/library'
+import { ProductFilters } from '../../../(main)/stock/_components/product-filters'
+import { AdminLibraryList } from './_components/admin-library-list'
 
-interface StockPageProps {
+interface AdminLibraryPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-export default async function StockPage({ searchParams }: StockPageProps) {
-  const ctx = await requireOrgContext()
+export default async function AdminLibraryPage({ searchParams }: AdminLibraryPageProps) {
+  const admin = await requirePlatformAdmin()
   const sp = await searchParams
-  const params = productListParamsSchema.parse(sp)
-  const { items, total, page, pageSize } = await listProducts(ctx, params)
-  const categories = await listCategoriesTree(ctx)
-  const canCreate = can(ctx, 'product', 'create')
-  const canManageCategories = can(ctx, 'productCategory', 'read')
+  const params = libraryListParamsSchema.parse(sp)
+
+  const [{ items, total, page, pageSize }, tree] = await Promise.all([
+    listLibraryProductsAdmin(admin, params),
+    listLibraryTree(admin),
+  ])
+
+  const filterTree = tree.map((c) => ({
+    id: c.id,
+    name: c.name,
+    subcategories: c.subcategories.map((s) => ({ id: s.id, name: s.name })),
+  }))
 
   const hasFilters = Boolean(params.search || params.categoryId || params.subcategoryId)
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
@@ -34,53 +38,47 @@ export default async function StockPage({ searchParams }: StockPageProps) {
     if (params.categoryId) qs.set('categoryId', params.categoryId)
     if (params.subcategoryId) qs.set('subcategoryId', params.subcategoryId)
     qs.set('page', String(p))
-    return `/stock?${qs.toString()}`
+    return `/admin/bibliotheque?${qs.toString()}`
   }
 
   return (
     <div className='mx-auto max-w-4xl px-4 py-8'>
       <div className='mb-6 flex items-center justify-between gap-4'>
         <div>
-          <h1 className='text-2xl font-bold tracking-tight'>Stock</h1>
-          <p className='text-muted-foreground'>Produits consommables, dépôts et chantiers.</p>
+          <h1 className='text-2xl font-bold tracking-tight'>Bibliothèque catalogue</h1>
+          <p className='text-muted-foreground'>
+            Catalogue de référence partagé avec toutes les organisations.
+          </p>
         </div>
         <div className='flex gap-2'>
-          <PrintListBar />
-          <Button variant='outline' render={<Link href='/stock/bibliotheque' />}>
-            <Library className='size-4' /> Bibliothèque
+          <Button variant='outline' render={<Link href='/admin/bibliotheque/categories' />}>
+            <FolderTree className='size-4' /> Catégories
           </Button>
-          {canManageCategories && (
-            <Button variant='outline' render={<Link href='/stock/categories' />}>
-              <FolderTree className='size-4' /> Catégories
-            </Button>
-          )}
-          {canCreate && (
-            <Button render={<Link href='/stock/nouveau' />}>
-              <Plus className='size-4' /> Nouveau
-            </Button>
-          )}
+          <Button render={<Link href='/admin/bibliotheque/nouveau' />}>
+            <Plus className='size-4' /> Nouveau
+          </Button>
         </div>
       </div>
 
       <div className='mb-4'>
-        <ProductFilters categories={categories} />
+        <ProductFilters categories={filterTree} />
       </div>
 
       {items.length === 0 ? (
         <Empty className='border'>
           <EmptyMedia variant='icon'>
-            <Boxes />
+            <Library />
           </EmptyMedia>
-          <EmptyTitle>{hasFilters ? 'Aucun résultat' : 'Aucun produit pour le moment'}</EmptyTitle>
+          <EmptyTitle>{hasFilters ? 'Aucun résultat' : 'Catalogue vide'}</EmptyTitle>
           <EmptyDescription>
             {hasFilters
               ? 'Aucun produit ne correspond à votre recherche.'
-              : 'Ajoutez votre premier produit au catalogue.'}
+              : 'Ajoutez le premier produit du catalogue, ou importez la bibliothèque.'}
           </EmptyDescription>
         </Empty>
       ) : (
         <>
-          <ProductList items={items} />
+          <AdminLibraryList items={items} />
           <div className='mt-4 flex items-center justify-between text-sm text-muted-foreground'>
             <span>
               {total} produit{total > 1 ? 's' : ''}
