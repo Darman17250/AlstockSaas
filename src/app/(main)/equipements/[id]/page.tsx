@@ -60,12 +60,12 @@ export default async function EquipmentPage({ params }: EquipmentPageProps) {
     throw e
   }
 
-  const canEdit = can(ctx.role, 'equipment', 'update')
-  const canDelete = can(ctx.role, 'equipment', 'delete')
-  const canManageMaintenance = can(ctx.role, 'maintenance', 'create')
-  const canCreateTask = can(ctx.role, 'activity', 'create')
+  const canEdit = can(ctx, 'equipment', 'update')
+  const canDelete = can(ctx, 'equipment', 'delete')
+  const canManageMaintenance = can(ctx, 'maintenance', 'create')
+  const canCreateTask = can(ctx, 'activity', 'create')
 
-  const canReadTasks = can(ctx.role, 'activity', 'read')
+  const canReadTasks = can(ctx, 'activity', 'read')
   const { items, totalCost } = await listMaintenanceForEquipment(ctx, id)
   // Membres requis pour la maintenance et/ou le formulaire de tâches.
   const members = canManageMaintenance || canCreateTask ? await listOrgMembers(ctx) : []

@@ -10,10 +10,10 @@ import { SuppliersManager } from './_components/suppliers-manager'
 
 export default async function FournisseursPage() {
   const ctx = await requireOrgContext()
-  if (!can(ctx.role, 'supplier', 'read')) redirect('/achats')
+  if (!can(ctx, 'supplier', 'read')) redirect('/achats')
 
   const suppliers = await listSuppliers(ctx)
-  const canManage = can(ctx.role, 'supplier', 'create')
+  const canManage = can(ctx, 'supplier', 'create')
 
   return (
     <div className='mx-auto max-w-3xl px-4 py-8'>

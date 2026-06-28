@@ -23,7 +23,7 @@ export default async function ChantiersPage({ searchParams }: ChantiersPageProps
     listSites(ctx, params),
     listClientOptions(ctx),
   ])
-  const canCreate = can(ctx.role, 'site', 'create')
+  const canCreate = can(ctx, 'site', 'create')
 
   const hasFilters = Boolean(params.search || params.status || params.clientId)
   const totalPages = Math.max(1, Math.ceil(total / pageSize))

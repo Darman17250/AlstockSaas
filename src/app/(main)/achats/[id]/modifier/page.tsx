@@ -16,7 +16,7 @@ interface EditPurchasePageProps {
 
 export default async function EditPurchasePage({ params }: EditPurchasePageProps) {
   const ctx = await requireOrgContext()
-  if (!can(ctx.role, 'purchase', 'update')) redirect('/achats')
+  if (!can(ctx, 'purchase', 'update')) redirect('/achats')
   const { id } = await params
 
   let purchase: Awaited<ReturnType<typeof getPurchase>>

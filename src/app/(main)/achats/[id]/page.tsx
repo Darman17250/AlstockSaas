@@ -37,8 +37,8 @@ export default async function PurchaseDetailPage({ params }: PurchasePageProps) 
   }
 
   const isDraft = purchase.status === 'brouillon'
-  const canEdit = can(ctx.role, 'purchase', 'update')
-  const canDelete = can(ctx.role, 'purchase', 'delete')
+  const canEdit = can(ctx, 'purchase', 'update')
+  const canDelete = can(ctx, 'purchase', 'delete')
   const canValidate = isDraft && canEdit
 
   const [depots, sites] = canValidate

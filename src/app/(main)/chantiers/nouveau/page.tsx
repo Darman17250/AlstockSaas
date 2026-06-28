@@ -15,7 +15,7 @@ interface NouveauChantierPageProps {
 
 export default async function NouveauChantierPage({ searchParams }: NouveauChantierPageProps) {
   const ctx = await requireOrgContext()
-  if (!can(ctx.role, 'site', 'create')) redirect('/chantiers')
+  if (!can(ctx, 'site', 'create')) redirect('/chantiers')
 
   const { clientId } = await searchParams
   const [clients, members] = await Promise.all([listClientOptions(ctx), listOrgMembers(ctx)])

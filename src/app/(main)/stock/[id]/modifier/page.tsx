@@ -16,7 +16,7 @@ interface EditProductPageProps {
 
 export default async function EditProductPage({ params }: EditProductPageProps) {
   const ctx = await requireOrgContext()
-  if (!can(ctx.role, 'product', 'update')) redirect('/stock')
+  if (!can(ctx, 'product', 'update')) redirect('/stock')
   const { id } = await params
 
   let product: Awaited<ReturnType<typeof getProduct>>

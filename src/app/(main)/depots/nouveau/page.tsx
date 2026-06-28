@@ -10,7 +10,7 @@ import { DepotForm } from '../_components/depot-form'
 
 export default async function NouveauDepotPage() {
   const ctx = await requireOrgContext()
-  if (!can(ctx.role, 'depot', 'create')) redirect('/depots')
+  if (!can(ctx, 'depot', 'create')) redirect('/depots')
 
   const members = await listOrgMembers(ctx)
 

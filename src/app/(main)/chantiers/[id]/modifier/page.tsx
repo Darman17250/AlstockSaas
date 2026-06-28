@@ -16,7 +16,7 @@ interface ModifierChantierPageProps {
 
 export default async function ModifierChantierPage({ params }: ModifierChantierPageProps) {
   const ctx = await requireOrgContext()
-  if (!can(ctx.role, 'site', 'update')) redirect('/chantiers')
+  if (!can(ctx, 'site', 'update')) redirect('/chantiers')
   const { id } = await params
 
   let site: Awaited<ReturnType<typeof getSite>>

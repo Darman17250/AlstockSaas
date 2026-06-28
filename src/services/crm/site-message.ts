@@ -351,7 +351,7 @@ export const deleteSiteMessage = async (ctx: OrgContext, messageId: string): Pro
   if (!row) throw new NotFoundError('Message introuvable')
 
   const isOwn = row.authorId === ctx.memberId
-  if (!isOwn && !can(ctx.role, 'site', 'update')) {
+  if (!isOwn && !can(ctx, 'site', 'update')) {
     throw new ForbiddenError('Suppression non autorisée')
   }
 

@@ -32,6 +32,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
       <AppSidebar
         orgName={org?.name ?? 'Mon entreprise'}
         role={ctx.role}
+        permissions={ctx.permissions}
         user={{ name: session.user.name, email: session.user.email }}
       />
       <SidebarInset>

@@ -12,7 +12,7 @@ import { ProductForm } from '../_components/product-form'
 
 export default async function NouveauProduitPage() {
   const ctx = await requireOrgContext()
-  if (!can(ctx.role, 'product', 'create')) redirect('/stock')
+  if (!can(ctx, 'product', 'create')) redirect('/stock')
 
   const [tree, depots] = await Promise.all([listCategoriesTree(ctx), listDepotOptions(ctx)])
   const categories = tree.map((c) => ({

@@ -65,14 +65,14 @@ export default async function DepotPage({ params }: DepotPageProps) {
     throw e
   }
 
-  const canEdit = can(ctx.role, 'depot', 'update')
-  const canDelete = can(ctx.role, 'depot', 'delete')
-  const canManageMaintenance = can(ctx.role, 'depotMaintenance', 'create')
-  const canCreateTask = can(ctx.role, 'activity', 'create')
-  const canReadTasks = can(ctx.role, 'activity', 'read')
-  const canReadTools = can(ctx.role, 'tool', 'read')
-  const canTransferTools = can(ctx.role, 'toolTransfer', 'create')
-  const canReadStock = can(ctx.role, 'product', 'read')
+  const canEdit = can(ctx, 'depot', 'update')
+  const canDelete = can(ctx, 'depot', 'delete')
+  const canManageMaintenance = can(ctx, 'depotMaintenance', 'create')
+  const canCreateTask = can(ctx, 'activity', 'create')
+  const canReadTasks = can(ctx, 'activity', 'read')
+  const canReadTools = can(ctx, 'tool', 'read')
+  const canTransferTools = can(ctx, 'toolTransfer', 'create')
+  const canReadStock = can(ctx, 'product', 'read')
 
   const isVehicle = depot.type === 'vehicule'
   const { items, totalCost } = await listMaintenanceForDepot(ctx, id)

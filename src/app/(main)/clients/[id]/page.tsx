@@ -49,22 +49,22 @@ export default async function ClientPage({ params }: ClientPageProps) {
     throw e
   }
 
-  const canEdit = can(ctx.role, 'client', 'update')
-  const canDelete = can(ctx.role, 'client', 'delete')
-  const canEditContacts = can(ctx.role, 'contact', 'create')
-  const canReadDeals = can(ctx.role, 'deal', 'read')
-  const canCreateDeals = can(ctx.role, 'deal', 'create')
+  const canEdit = can(ctx, 'client', 'update')
+  const canDelete = can(ctx, 'client', 'delete')
+  const canEditContacts = can(ctx, 'contact', 'create')
+  const canReadDeals = can(ctx, 'deal', 'read')
+  const canCreateDeals = can(ctx, 'deal', 'create')
   const deals = canReadDeals ? await listDealsForClient(ctx, id) : []
 
-  const canReadComms = can(ctx.role, 'activity', 'read')
-  const canEditComms = can(ctx.role, 'activity', 'create')
+  const canReadComms = can(ctx, 'activity', 'read')
+  const canEditComms = can(ctx, 'activity', 'create')
   const communications = canReadComms ? await listClientCommunications(ctx, id) : []
   const members = canEditComms ? await listOrgMembers(ctx) : []
   const tasks = canReadComms ? await listTasksForClient(ctx, id) : []
 
-  const canReadEquipment = can(ctx.role, 'equipment', 'read')
-  const canManageLocations = can(ctx.role, 'location', 'create')
-  const canManageEquipment = can(ctx.role, 'equipment', 'create')
+  const canReadEquipment = can(ctx, 'equipment', 'read')
+  const canManageLocations = can(ctx, 'location', 'create')
+  const canManageEquipment = can(ctx, 'equipment', 'create')
   const locations = canReadEquipment ? await listLocationsForClient(ctx, id) : []
   const equipments = canReadEquipment ? await listEquipmentsForClient(ctx, id) : []
 

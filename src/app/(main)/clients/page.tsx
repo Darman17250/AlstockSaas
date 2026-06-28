@@ -19,7 +19,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   const sp = await searchParams
   const params = clientListParamsSchema.parse(sp)
   const { items, total, page, pageSize } = await listClients(ctx, params)
-  const canCreate = can(ctx.role, 'client', 'create')
+  const canCreate = can(ctx, 'client', 'create')
 
   const hasFilters = Boolean(params.search || params.type || params.relationType)
   const totalPages = Math.max(1, Math.ceil(total / pageSize))

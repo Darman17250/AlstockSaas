@@ -11,7 +11,7 @@ import { PurchaseForm } from '../_components/purchase-form'
 
 export default async function NouvelAchatPage() {
   const ctx = await requireOrgContext()
-  if (!can(ctx.role, 'purchase', 'create')) redirect('/achats')
+  if (!can(ctx, 'purchase', 'create')) redirect('/achats')
 
   const [products, suppliers] = await Promise.all([
     listProductOptions(ctx),

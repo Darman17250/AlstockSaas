@@ -10,10 +10,10 @@ import { CategoriesManager } from './_components/categories-manager'
 
 export default async function CategoriesPage() {
   const ctx = await requireOrgContext()
-  if (!can(ctx.role, 'productCategory', 'read')) redirect('/stock')
+  if (!can(ctx, 'productCategory', 'read')) redirect('/stock')
 
   const categories = await listCategoriesTree(ctx)
-  const canManage = can(ctx.role, 'productCategory', 'create')
+  const canManage = can(ctx, 'productCategory', 'create')
 
   return (
     <div className='mx-auto max-w-3xl px-4 py-8'>

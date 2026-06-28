@@ -15,7 +15,7 @@ interface ModifierMaterielPageProps {
 
 export default async function ModifierMaterielPage({ params }: ModifierMaterielPageProps) {
   const ctx = await requireOrgContext()
-  if (!can(ctx.role, 'tool', 'update')) redirect('/materiel')
+  if (!can(ctx, 'tool', 'update')) redirect('/materiel')
   const { id } = await params
 
   let tool: Awaited<ReturnType<typeof getTool>>

@@ -33,10 +33,10 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
     throw e
   }
 
-  const canEdit = can(ctx.role, 'product', 'update')
-  const canDelete = can(ctx.role, 'product', 'delete')
-  const canTransfer = can(ctx.role, 'stockMovement', 'create')
-  const canReadMovements = can(ctx.role, 'stockMovement', 'read')
+  const canEdit = can(ctx, 'product', 'update')
+  const canDelete = can(ctx, 'product', 'delete')
+  const canTransfer = can(ctx, 'stockMovement', 'create')
+  const canReadMovements = can(ctx, 'stockMovement', 'read')
 
   const unitPrice = Number(product.weightedAvgPrice)
   const summary = await getProductStockSummary(ctx, id)

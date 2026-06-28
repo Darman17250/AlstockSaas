@@ -15,7 +15,7 @@ interface ModifierDepotPageProps {
 
 export default async function ModifierDepotPage({ params }: ModifierDepotPageProps) {
   const ctx = await requireOrgContext()
-  if (!can(ctx.role, 'depot', 'update')) redirect('/depots')
+  if (!can(ctx, 'depot', 'update')) redirect('/depots')
   const { id } = await params
 
   let depot: Awaited<ReturnType<typeof getDepot>>

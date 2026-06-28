@@ -18,7 +18,7 @@ interface TransfertPageProps {
 
 export default async function TransfertPage({ params }: TransfertPageProps) {
   const ctx = await requireOrgContext()
-  if (!can(ctx.role, 'toolTransfer', 'create')) redirect('/materiel')
+  if (!can(ctx, 'toolTransfer', 'create')) redirect('/materiel')
   const { id } = await params
 
   let tool: Awaited<ReturnType<typeof getTool>>

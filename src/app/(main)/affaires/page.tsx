@@ -27,9 +27,9 @@ export default async function AffairesPage({ searchParams }: AffairesPageProps) 
   const ctx = await requireOrgContext()
   const sp = await searchParams
   const tab: TabKey = TABS.some((t) => t.key === sp.tab) ? (sp.tab as TabKey) : 'pipeline'
-  const canCreate = can(ctx.role, 'deal', 'create')
-  const canCreateSite = can(ctx.role, 'site', 'create')
-  const canEdit = can(ctx.role, 'deal', 'update')
+  const canCreate = can(ctx, 'deal', 'create')
+  const canCreateSite = can(ctx, 'site', 'create')
+  const canEdit = can(ctx, 'deal', 'update')
 
   const tabHref = (key: TabKey) => (key === 'pipeline' ? '/affaires' : `/affaires?tab=${key}`)
 

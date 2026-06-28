@@ -77,21 +77,21 @@ export default async function SitePage({ params }: SitePageProps) {
     throw e
   }
 
-  const canEdit = can(ctx.role, 'site', 'update')
-  const canDelete = can(ctx.role, 'site', 'delete')
+  const canEdit = can(ctx, 'site', 'update')
+  const canDelete = can(ctx, 'site', 'delete')
   const documents = await listSiteDocuments(ctx, id)
   const team = await listSiteTeam(ctx, id)
   const messages = await listSiteMessages(ctx, id)
-  const canReadReports = can(ctx.role, 'report', 'read')
+  const canReadReports = can(ctx, 'report', 'read')
   const reports = canReadReports ? await listSiteReports(ctx, id) : []
   const storageConfigured = isStorageConfigured()
-  const canReadTasks = can(ctx.role, 'activity', 'read')
-  const canEditTasks = can(ctx.role, 'activity', 'create')
+  const canReadTasks = can(ctx, 'activity', 'read')
+  const canEditTasks = can(ctx, 'activity', 'create')
   const tasks = canReadTasks ? await listTasksForSite(ctx, id) : []
-  const canReadTools = can(ctx.role, 'tool', 'read')
-  const canTransferTools = can(ctx.role, 'toolTransfer', 'create')
+  const canReadTools = can(ctx, 'tool', 'read')
+  const canTransferTools = can(ctx, 'toolTransfer', 'create')
   const toolsPresent = canReadTools ? await listToolsForSite(ctx, id) : []
-  const canReadStock = can(ctx.role, 'product', 'read')
+  const canReadStock = can(ctx, 'product', 'read')
   const stockLoc = { depotId: null, siteId: id }
   const [stockItems, stockValue] = canReadStock
     ? await Promise.all([listStockForLocation(ctx, stockLoc), getLocationStockValue(ctx, stockLoc)])
@@ -187,9 +187,9 @@ export default async function SitePage({ params }: SitePageProps) {
           <SiteReportsSection
             siteId={data.id}
             reports={reports}
-            canCreate={can(ctx.role, 'report', 'create')}
-            canUpdate={can(ctx.role, 'report', 'update')}
-            canDelete={can(ctx.role, 'report', 'delete')}
+            canCreate={can(ctx, 'report', 'create')}
+            canUpdate={can(ctx, 'report', 'update')}
+            canDelete={can(ctx, 'report', 'delete')}
             storageConfigured={storageConfigured}
           />
         )}

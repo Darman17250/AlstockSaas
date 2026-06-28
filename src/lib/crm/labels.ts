@@ -164,6 +164,72 @@ export const DEPOT_DOCUMENT_CATEGORY_LABELS: Record<string, string> = {
 }
 
 // ============================================================================
+// Équipe — rôles & habilitations
+// ============================================================================
+
+/** Types d'habilitation/certification BTP. */
+export const HABILITATION_TYPE_LABELS: Record<string, string> = {
+  caces: 'CACES',
+  travail_hauteur: 'Travail en hauteur',
+  habilitation_elec: 'Habilitation électrique',
+  amiante_ss4: 'Amiante (SS4)',
+  secourisme_sst: 'Secourisme (SST)',
+  permis: 'Permis',
+  nacelle: 'Nacelle (PEMP)',
+  echafaudage: 'Échafaudage',
+  autre: 'Autre',
+}
+
+/** Libellés des statuts d'expiration d'habilitation. */
+export const HABILITATION_STATUS_LABELS: Record<string, string> = {
+  valide: 'Valide',
+  expire_bientot: 'Expire bientôt',
+  expiree: 'Expirée',
+}
+
+/** Domaines des ressources d'access-control (groupage de l'éditeur de rôle). */
+export const RESOURCE_DOMAINS: { label: string; resources: string[] }[] = [
+  { label: 'CRM', resources: ['client', 'contact', 'deal', 'activity'] },
+  { label: 'Chantiers', resources: ['site', 'report', 'timeEntry'] },
+  {
+    label: 'Matériel',
+    resources: ['tool', 'toolMaintenance', 'toolTransfer', 'toolIssue', 'equipment', 'maintenance'],
+  },
+  { label: 'Dépôts', resources: ['depot', 'depotMaintenance', 'location'] },
+  {
+    label: 'Stock & achats',
+    resources: ['product', 'productCategory', 'supplier', 'purchase', 'stockMovement'],
+  },
+  { label: 'Équipe', resources: ['habilitation'] },
+]
+
+/** Libellés FR des ressources d'access-control. */
+export const RESOURCE_LABELS: Record<string, string> = {
+  client: 'Clients',
+  contact: 'Contacts',
+  deal: 'Affaires',
+  activity: 'Activités & tâches',
+  site: 'Chantiers',
+  report: 'Rapports',
+  timeEntry: 'Pointage',
+  location: 'Localisations client',
+  equipment: 'Équipements client',
+  maintenance: 'Entretiens équipement',
+  depot: 'Dépôts & véhicules',
+  depotMaintenance: 'Entretiens dépôt',
+  tool: 'Matériel',
+  toolMaintenance: 'Entretiens matériel',
+  toolTransfer: 'Transferts matériel',
+  toolIssue: 'Signalements matériel',
+  product: 'Produits',
+  productCategory: 'Catégories produits',
+  supplier: 'Fournisseurs',
+  purchase: 'Achats',
+  stockMovement: 'Mouvements de stock',
+  habilitation: 'Habilitations',
+}
+
+// ============================================================================
 // Matériel (parc d'outillage & machines de l'organisation)
 // ============================================================================
 

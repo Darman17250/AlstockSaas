@@ -58,13 +58,13 @@ export default async function DealPage({ params }: DealPageProps) {
     throw e
   }
 
-  const canEdit = can(ctx.role, 'deal', 'update')
-  const canDelete = can(ctx.role, 'deal', 'delete')
-  const canCreateSite = can(ctx.role, 'site', 'create')
+  const canEdit = can(ctx, 'deal', 'update')
+  const canDelete = can(ctx, 'deal', 'delete')
+  const canCreateSite = can(ctx, 'site', 'create')
   const documents = await listDealDocuments(ctx, id)
   const storageConfigured = isStorageConfigured()
-  const canReadTasks = can(ctx.role, 'activity', 'read')
-  const canEditTasks = can(ctx.role, 'activity', 'create')
+  const canReadTasks = can(ctx, 'activity', 'read')
+  const canEditTasks = can(ctx, 'activity', 'create')
   const tasks = canReadTasks ? await listTasksForDeal(ctx, id) : []
   const taskMembers = canEditTasks ? await listOrgMembers(ctx) : []
 

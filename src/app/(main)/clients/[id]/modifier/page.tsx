@@ -15,7 +15,7 @@ interface ModifierClientPageProps {
 
 export default async function ModifierClientPage({ params }: ModifierClientPageProps) {
   const ctx = await requireOrgContext()
-  if (!can(ctx.role, 'client', 'update')) redirect('/clients')
+  if (!can(ctx, 'client', 'update')) redirect('/clients')
   const { id } = await params
 
   let data: Awaited<ReturnType<typeof getClient>>

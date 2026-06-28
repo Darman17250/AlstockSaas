@@ -17,7 +17,7 @@ interface ModifierAffairePageProps {
 
 export default async function ModifierAffairePage({ params }: ModifierAffairePageProps) {
   const ctx = await requireOrgContext()
-  if (!can(ctx.role, 'deal', 'update')) redirect('/affaires')
+  if (!can(ctx, 'deal', 'update')) redirect('/affaires')
   const { id } = await params
 
   let deal: Awaited<ReturnType<typeof getDeal>>

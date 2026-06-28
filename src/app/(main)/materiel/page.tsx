@@ -21,7 +21,7 @@ export default async function MaterielPage({ searchParams }: MaterielPageProps) 
   const sp = await searchParams
   const params = toolListParamsSchema.parse(sp)
   const { items, total, page, pageSize } = await listTools(ctx, params)
-  const canCreate = can(ctx.role, 'tool', 'create')
+  const canCreate = can(ctx, 'tool', 'create')
 
   const [depots, sites] = await Promise.all([listDepotOptions(ctx), listSiteOptions(ctx)])
 

@@ -8,7 +8,7 @@
 - **Affaire ≠ Chantier** : entités distinctes reliées. Une affaire gagnée se convertit en chantier (pré-remplissage). Une affaire perdue ne crée rien. Un client peut avoir plusieurs chantiers.
 - **Le client peut être une société OU un particulier** : entité unique `client` avec un discriminant `type`.
 - Le statut « prospect » n'est **pas** un attribut du client : il découle du pipeline (un client sans affaire gagnée = prospect). La fiche client ne porte que la relation `client | prestataire`.
-- **Hors périmètre** (absent du modèle) : facturation, devis, chiffrage/étude de prix, situations de travaux, recouvrement, factures fournisseurs, paie, stock/matériel.
+- **Hors périmètre** (absent du modèle) : facturation, devis, chiffrage/étude de prix, situations de travaux, recouvrement, factures fournisseurs comptables, paie. *(Le **matériel unitaire** — extension v1.3 — et le **stock consommable** avec achats/réceptions — extension v1.4 — sont désormais DANS le périmètre ; voir extensions ci-dessous. L'« achat » de v1.4 est un **bon de réception qui alimente le stock**, pas une facture fournisseur comptable.)*
 
 ## Conventions appliquées à toutes les tables métier
 
@@ -409,6 +409,92 @@ Miroir de `depot_document` **sans `expiresAt`** : `category` (`tool_document_cat
 ### Convention QR & scanner global (transverse, réutilisable)
 - **Tout QR encode l'URL absolue même-origine** de la page deep-link de l'entité, construite depuis les en-têtes de la requête. Aujourd'hui : équipement client → `/equipements/[id]` ; matériel → `/materiel/[id]/transfert` (scan ⇒ déplacer dans les deux sens). Demain (produits, chantiers…), il suffit d'imprimer un QR avec l'URL de leur page — **aucune modification du scanner**.
 - **Scanner global** : composant caméra réutilisable (`@zxing/browser`) + dialog mobile-first, déclenché depuis une entrée « Scanner » de la sidebar (tous rôles authentifiés). Sur lecture d'une URL **même origine**, navigue vers son chemin interne ; sinon affiche le texte décodé. Repli **saisie manuelle** si caméra refusée/absente. La caméra exige **https** (ou `localhost`).
+
+---
+
+## Extension v1.4 — Stock (produits consommables), achats & coût moyen pondéré
+
+> Ajout validé après le parc de matériel. Le **stock par quantités** entre désormais dans le périmètre. Un **produit** est une **référence fongible** (vis, ciment, câble, gaine…) suivie en **quantité**, répartie simultanément sur plusieurs **dépôts** et **chantiers** — à distinguer de `tool` (actif unitaire, 1 ligne = 1 machine) et de `equipment` (parc chez le client). La quantité d'un produit n'est **jamais stockée sur la fiche produit** : elle dérive des `stock_level` (source de vérité unique). Le **coût moyen pondéré (WAC)** est stocké sur le produit et recalculé à chaque **entrée**.
+
+**Sémantique « stock global » (décidée avec l'utilisateur).** Le **stock global** d'un produit = la somme des quantités **en dépôts uniquement**. Déplacer une quantité vers un chantier la **sort du stock global** (déployée/consommée) ; un **retour chantier** la réintègre. La fiche produit affiche aussi « **sur chantiers actifs** » = quantité présente sur des chantiers non `termine`/`annule`.
+
+### `product_category` / `product_subcategory` — Arborescence catalogue (soft-delete)
+- `product_category` : `id`, `organizationId`, `name`. Idx `organizationId`.
+- `product_subcategory` : `id`, `organizationId`, `categoryId` (→ category, **cascade**), `name`. Idx `organizationId`, `categoryId`.
+- Une catégorie possède **plusieurs sous-catégories** ; un produit référence **une catégorie ET une sous-catégorie cohérentes** (la sous-catégorie doit appartenir à la catégorie — vérifié en service). Espace dédié de gestion `/stock/categories`. Soft-delete refusé si des produits y sont rattachés ; supprimer une catégorie soft-supprime ses sous-catégories.
+
+### `product` — Produit (fiche catalogue) — soft-delete
+| Champ | Type | Notes |
+|---|---|---|
+| title | text, not null | |
+| imagePath | text, null | Image (Supabase Storage, préfixe `org/products/<id>/…`, URL signée à la lecture) |
+| categoryId | fk → product_category, **not null** (restrict) | |
+| subcategoryId | fk → product_subcategory, **not null** (restrict) | Cohérente avec la catégorie |
+| unit | enum `product_unit`, not null | Unité (liste fixe) |
+| description | text, null | |
+| weightedAvgPrice | decimal(12,4), default 0, not null | **WAC stocké** (path-dependent, non recalculable depuis l'état courant) |
+| initialPurchasePrice | decimal(12,4), null | Prix d'achat initial (mémo, amorce le WAC) |
+| alertThreshold | decimal(14,3), null | **Seuil d'alerte** : badge « Stock bas » quand le stock global (dépôts) ≤ seuil. `null` = pas d'alerte |
+
+Idx `organizationId`, `categoryId`, `subcategoryId`. **Quantité non stockée** (dérivée des `stock_level`).
+
+### `stock_level` — Niveau de stock par localisation (balance, pas de soft-delete)
+`productId` (cascade), **`depotId` (→ depot, cascade) XOR `siteId` (→ site, cascade)** — exactement un non-null (même logique exclusive que `tool`), `quantity` decimal(14,3) défaut 0 (**jamais négatif**). **Unicité partielle** `(productId, depotId)` et `(productId, siteId)` (un seul niveau par couple produit/localisation). Idx `organizationId`, `productId`, `depotId`, `siteId`.
+
+### `stock_movement` — Journal des mouvements (hard-delete, append-only)
+`productId` (cascade), `type` (`stock_movement_type` : `reception | transfer | return | adjustment`), `fromDepotId`/`fromSiteId`/`toDepotId`/`toSiteId` (→ depot/site, set null), `quantity` decimal(14,3), `unitPrice` decimal(12,4) null (WAC ou prix d'achat au moment, pour valoriser), `purchaseId` (→ purchase, set null, pour les réceptions), `note`, `movedById` (→ member, set null), `createdAt`. Idx `organizationId`, `productId`, `createdAt`.
+
+### `supplier` — Fournisseur (soft-delete)
+`name` (not null), `email`, `phone`, `addressLine1/2`, `postalCode`, `city`, `country` (défaut `FR`), `notes`. Idx `organizationId`. Espace dédié `/achats/fournisseurs`.
+
+### `purchase` / `purchase_line` — Achat (bon de réception) — soft-delete sur l'en-tête
+- `purchase` : `supplierId` (→ supplier, set null), `reference`, `status` (`purchase_status` : `brouillon | validee | annulee`, défaut `brouillon` = « en cours »), `orderDate`, `validatedAt`, `notes`. Idx `organizationId`, `status`, `supplierId`.
+- `purchase_line` : `purchaseId` (cascade), `productId` (→ product, restrict), `quantity` decimal(14,3), `unitPrice` decimal(12,4) (prix d'achat de la ligne), `destinationDepotId`/`destinationSiteId` (→ depot/site, set null, **renseignés à la validation**, XOR). Idx `organizationId`, `purchaseId`, `productId`.
+
+### Règles métier clés
+- **Coût moyen pondéré (WAC)** — recalculé à chaque **entrée** (réception d'achat OU stock initial), au niveau produit, sur la quantité **totale détenue** (dépôts + chantiers) : `newWAC = (qtyAvant·WACavant + qtyReçue·prixAchat) / (qtyAvant + qtyReçue)`. **Les transferts/retours ne modifient pas le WAC** (la quantité reste détenue, elle change de localisation).
+- **Stock initial à la création** : la quantité de départ est **répartissable sur plusieurs dépôts** (lignes dépôt + quantité), au prix d'achat unitaire commun qui amorce le WAC.
+- **Transferts** (3 sens, **jamais chantier → chantier** — repasser par un dépôt) : `dépôt→dépôt`, `dépôt→chantier`, `chantier→dépôt` (retour). Service **transactionnel** avec **verrou ligne** (`SELECT … FOR UPDATE`) sur la source et **contrôle de disponibilité** (`InsufficientStockError` si quantité insuffisante). Décrément source + (upsert) incrément destination + mouvement (`transfer` / `return`).
+- **Réception d'achat** : un achat `brouillon` n'impacte pas le stock ; sa **validation** ventile chaque ligne vers sa destination (dépôt OU chantier), incrémente le `stock_level`, recalcule le WAC, journalise (`reception`), passe l'achat `validee` (`validatedAt`). **Idempotent** (un achat déjà validé/annulé ne peut pas l'être à nouveau).
+- **Valeurs affichées** : valeur d'une localisation = `Σ quantité × WAC` ; sections « Stock » (valeur + produits présents) sur les **fiches dépôt & chantier**.
+- **Suppression produit** refusée s'il reste du stock détenu.
+
+### Étiquettes & impression groupée
+- Page **interne** d'étiquette produit `/stock/[id]/etiquette` : **image + titre + QR**, le QR encodant l'URL absolue même-origine de la **fiche produit** `/stock/[id]` (convention QR transverse v1.3 — aucune modification du scanner).
+- **Liste d'impression** : sélection de plusieurs produits (persistée côté client) puis **impression groupée** d'une planche multi-étiquettes (`/stock/etiquettes`), service `listProductsByIds` (filtré `organizationId`).
+
+### Enums, permissions & liens
+- Enums : `product_unit` (`u · ml · m2 · m3 · kg · t · l · sac · palette · rouleau · boite · lot · h`), `stock_movement_type` (`reception · transfer · return · adjustment`), `purchase_status` (`brouillon · validee · annulee`). Le type `adjustment` est prévu pour une future régularisation d'inventaire (UI non livrée).
+- Permissions : `product` (admin/conducteur complet · commercial/terrain lecture) ; `productCategory` (admin/conducteur complet · commercial/terrain lecture) ; `supplier` & `purchase` (admin/conducteur complet · commercial/terrain lecture) ; `stockMovement` (admin/conducteur create/read/delete · terrain create/read · commercial lecture).
+- Entrées sidebar : **Stock** (`/stock`, ressource `product`) et **Achats** (`/achats`, ressource `purchase`).
+
+---
+
+## Extension v1.5 — Équipe enrichie : rôles personnalisés & habilitations
+
+Enrichit la gestion de l'équipe : rôles **personnalisés par organisation** (au-delà des rôles intégrés) et suivi des **habilitations/certifications BTP** par membre, avec documents et alertes d'expiration. Périmètre EXCLU inchangé (pas de coût/paie/facturation).
+
+### `custom_role` — Rôle personnalisé (hard-delete, bloqué si utilisé)
+- `id` (uuid pk), `organizationId` (fk non null, indexée), `name`, `slug` (unique par org — **stocké sur `member.role`**, coexiste avec les slugs intégrés), `description?`, `color?` (#RRGGBB), `permissions` (jsonb : `Record<BusinessResource, Action[]>`), `isSystem` (bool, false pour les rôles custom), `createdAt`, `updatedAt`.
+- Index : `organizationId` ; unique `(organizationId, slug)`.
+
+### `member_habilitation` — Habilitation/certification d'un membre (hard-delete)
+- `id` (uuid pk), `organizationId` (fk non null, indexée), `memberId` (fk → `member`, `onDelete cascade`, indexée).
+- `type` (enum `habilitation_type`), `name` (libellé précis, ex. « CACES R489 cat. 3 »), `issuer?` (organisme), `reference?` (n° de certificat), `issuedAt?` (date), `expiresAt?` (date — null = sans expiration).
+- Document inline (un courant par habilitation ; le renouvellement remplace le fichier) : `storagePath?`, `fileName?`, `mimeType?`, `size?`, `uploadedById` (fk → `member`, `set null`).
+- Index : `organizationId`, `memberId`, `expiresAt`.
+
+### Statut & alertes (visuelles)
+- Statut dérivé de `expiresAt` : `valide` | `expire_bientot` (≤ seuil) | `expiree` ; seuil partagé `HABILITATION_EXPIRY_WARN_DAYS = 30` jours.
+- Alertes : pastille de statut sur la fiche membre, bannière en haut de l'écran Équipe, widget « Habilitations à renouveler » sur le dashboard. Le service `listExpiringHabilitations` reste réutilisable par un futur canal e-mail (V2).
+
+### Enums, permissions & liens
+- Enum : `habilitation_type` (`caces · travail_hauteur · habilitation_elec · amiante_ss4 · secourisme_sst · permis · nacelle · echafaudage · autre`).
+- Nouvelle ressource access-control **`habilitation`** (crud) ajoutée à `statement` et aux rôles intégrés : owner/admin complet · conducteur read+update · terrain read · commercial read. L'écran Équipe (écriture) est réservé à owner/admin.
+- **Résolution des permissions** : `BUILTIN_PERMISSIONS` (rôles intégrés) reste la source de vérité ; pour un rôle custom, la matrice `permissions` est chargée une fois dans `OrgContext.permissions` par `getOrgContext()`. `can(ctx, resource, action)` reste **synchrone** partout (aucun `await` ajouté aux services).
+- **Décisions** : (1A) le slug du rôle est porté par `member.role` ; (3A) suppression d'un rôle **bloquée** tant que des membres l'utilisent ; assignation d'un rôle custom écrite directement sur `member.role` (le plugin Better-Auth ne valide que ses rôles statiques) ; invitations limitées aux rôles intégrés assignables.
+- Documents : mêmes garde-fous MIME/taille que les autres documents (cf. v1.2), URLs signées, `storagePath = ${orgId}/members/${memberId}/habilitations/${uuid}-${nom}`.
+- Entrée sidebar : **Équipe** (`/equipe`, réservée owner/admin) ; fiche membre `/equipe/[memberId]`.
 
 ---
 

@@ -22,8 +22,8 @@ export default async function StockPage({ searchParams }: StockPageProps) {
   const params = productListParamsSchema.parse(sp)
   const { items, total, page, pageSize } = await listProducts(ctx, params)
   const categories = await listCategoriesTree(ctx)
-  const canCreate = can(ctx.role, 'product', 'create')
-  const canManageCategories = can(ctx.role, 'productCategory', 'read')
+  const canCreate = can(ctx, 'product', 'create')
+  const canManageCategories = can(ctx, 'productCategory', 'read')
 
   const hasFilters = Boolean(params.search || params.categoryId || params.subcategoryId)
   const totalPages = Math.max(1, Math.ceil(total / pageSize))

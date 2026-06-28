@@ -10,6 +10,7 @@ import {
   boolean,
   index,
   uniqueIndex,
+  jsonb,
   decimal,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core'
@@ -468,6 +469,19 @@ export const stockMovementTypeEnum = pgEnum('stock_movement_type', [
 ])
 export const purchaseStatusEnum = pgEnum('purchase_status', ['brouillon', 'validee', 'annulee'])
 
+// Habilitations / certifications BTP d'un membre (cf. cadrage v1.5).
+export const habilitationTypeEnum = pgEnum('habilitation_type', [
+  'caces',
+  'travail_hauteur',
+  'habilitation_elec',
+  'amiante_ss4',
+  'secourisme_sst',
+  'permis',
+  'nacelle',
+  'echafaudage',
+  'autre',
+])
+
 // ============================================================================
 // Tables métier — toutes portent organizationId (non null, indexé) pour le
 // cloisonnement multi-tenant. Soft-delete (deletedAt) sur les entités à valeur.
@@ -775,6 +789,72 @@ export const depotDocument = pgTable(
   (table) => [
     index('depot_document_organizationId_idx').on(table.organizationId),
     index('depot_document_depotId_idx').on(table.depotId),
+  ]
+)
+
+// Rôle personnalisé par organisation (cf. cadrage v1.5). Le slug est stocké sur
+// member.role et coexiste avec les slugs des rôles intégrés. `permissions` est la
+// matrice ressource→actions, source de vérité pour `can()` (résolue dans OrgContext).
+export const customRole = pgTable(
+  'custom_role',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    description: text('description'),
+    color: text('color'),
+    permissions: jsonb('permissions').$type<Record<string, string[]>>().default({}).notNull(),
+    isSystem: boolean('is_system').default(false).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('custom_role_organizationId_idx').on(table.organizationId),
+    uniqueIndex('custom_role_org_slug_idx').on(table.organizationId, table.slug),
+  ]
+)
+
+// Habilitation / certification BTP d'un membre (CACES, travail en hauteur…), avec
+// un document courant optionnel (le renouvellement remplace le fichier).
+export const memberHabilitation = pgTable(
+  'member_habilitation',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    memberId: text('member_id')
+      .notNull()
+      .references(() => member.id, { onDelete: 'cascade' }),
+    type: habilitationTypeEnum('type').notNull(),
+    name: text('name').notNull(),
+    issuer: text('issuer'),
+    reference: text('reference'),
+    issuedAt: date('issued_at'),
+    // null = sans expiration.
+    expiresAt: date('expires_at'),
+    // Document inline (au plus un courant par habilitation).
+    storagePath: text('storage_path'),
+    fileName: text('file_name'),
+    mimeType: text('mime_type'),
+    size: integer('size'),
+    uploadedById: text('uploaded_by_id').references(() => member.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('member_habilitation_organizationId_idx').on(table.organizationId),
+    index('member_habilitation_memberId_idx').on(table.memberId),
+    index('member_habilitation_expiresAt_idx').on(table.expiresAt),
   ]
 )
 
@@ -1705,6 +1785,25 @@ export const depotDocumentRelations = relations(depotDocument, ({ one }) => ({
   depot: one(depot, { fields: [depotDocument.depotId], references: [depot.id] }),
   uploadedBy: one(member, {
     fields: [depotDocument.uploadedById],
+    references: [member.id],
+  }),
+}))
+
+export const customRoleRelations = relations(customRole, ({ one }) => ({
+  organization: one(organization, {
+    fields: [customRole.organizationId],
+    references: [organization.id],
+  }),
+}))
+
+export const memberHabilitationRelations = relations(memberHabilitation, ({ one }) => ({
+  organization: one(organization, {
+    fields: [memberHabilitation.organizationId],
+    references: [organization.id],
+  }),
+  member: one(member, { fields: [memberHabilitation.memberId], references: [member.id] }),
+  uploadedBy: one(member, {
+    fields: [memberHabilitation.uploadedById],
     references: [member.id],
   }),
 }))

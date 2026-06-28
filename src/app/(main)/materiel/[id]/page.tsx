@@ -74,14 +74,14 @@ export default async function MaterielDetailPage({ params }: MaterielPageProps) 
     throw e
   }
 
-  const canEdit = can(ctx.role, 'tool', 'update')
-  const canDelete = can(ctx.role, 'tool', 'delete')
-  const canTransfer = can(ctx.role, 'toolTransfer', 'create')
-  const canManageMaintenance = can(ctx.role, 'toolMaintenance', 'create')
-  const canReportIssue = can(ctx.role, 'toolIssue', 'create')
-  const canResolveIssue = can(ctx.role, 'toolIssue', 'update')
-  const canCreateTask = can(ctx.role, 'activity', 'create')
-  const canReadTasks = can(ctx.role, 'activity', 'read')
+  const canEdit = can(ctx, 'tool', 'update')
+  const canDelete = can(ctx, 'tool', 'delete')
+  const canTransfer = can(ctx, 'toolTransfer', 'create')
+  const canManageMaintenance = can(ctx, 'toolMaintenance', 'create')
+  const canReportIssue = can(ctx, 'toolIssue', 'create')
+  const canResolveIssue = can(ctx, 'toolIssue', 'update')
+  const canCreateTask = can(ctx, 'activity', 'create')
+  const canReadTasks = can(ctx, 'activity', 'read')
 
   const isMachine = tool.kind === 'machine'
   const { items, totalCost } = await listMaintenanceForTool(ctx, id)

@@ -1,11 +1,18 @@
 import 'server-only'
+import { cache } from 'react'
 import { headers } from 'next/headers'
 import { and, desc, eq } from 'drizzle-orm'
 
 import { db } from '@/database'
-import { member as memberTable } from '@/database/schema'
+import { customRole, member as memberTable } from '@/database/schema'
 import { auth } from './auth'
-import { can, type Action, type BusinessResource } from './permissions'
+import {
+  can,
+  resolveBuiltinPermissions,
+  type Action,
+  type BusinessResource,
+  type PermissionMatrix,
+} from './permissions'
 
 /**
  * Contexte d'organisation dérivé **côté serveur** de la session active.
@@ -19,10 +26,35 @@ export interface OrgContext {
   organizationId: string
   memberId: string
   role: string
+  /**
+   * Matrice de permissions effective du rôle (intégré ou custom). Fait foi pour
+   * `can(ctx, …)`. Résolue une fois ici pour rester synchrone côté services.
+   */
+  permissions: PermissionMatrix
+}
+
+/**
+ * Résout la matrice de permissions d'un slug de rôle dans l'organisation : matrice
+ * intégrée si connue, sinon `custom_role` de l'org (filtré `organizationId`).
+ */
+const resolveRolePermissions = async (
+  organizationId: string,
+  role: string
+): Promise<PermissionMatrix> => {
+  const builtin = resolveBuiltinPermissions(role)
+  if (builtin) return builtin
+
+  const [row] = await db
+    .select({ permissions: customRole.permissions })
+    .from(customRole)
+    .where(and(eq(customRole.organizationId, organizationId), eq(customRole.slug, role)))
+    .limit(1)
+
+  return (row?.permissions as PermissionMatrix | undefined) ?? {}
 }
 
 /** Renvoie le contexte org, ou `null` si non authentifié / pas d'org active. */
-export const getOrgContext = async (): Promise<OrgContext | null> => {
+export const getOrgContext = cache(async (): Promise<OrgContext | null> => {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) return null
 
@@ -62,13 +94,16 @@ export const getOrgContext = async (): Promise<OrgContext | null> => {
   // Aucune appartenance → onboarding.
   if (!row) return null
 
+  const permissions = await resolveRolePermissions(row.organizationId, row.role)
+
   return {
     userId: session.user.id,
     organizationId: row.organizationId,
     memberId: row.id,
     role: row.role,
+    permissions,
   }
-}
+})
 
 /** Erreurs métier typées (pas de throw de strings). */
 export class UnauthorizedError extends Error {
@@ -103,7 +138,14 @@ export const requirePermission = (
   resource: BusinessResource,
   action: Action
 ): void => {
-  if (!can(ctx.role, resource, action)) {
+  if (!can(ctx, resource, action)) {
     throw new ForbiddenError(`Permission manquante : ${resource}:${action}`)
+  }
+}
+
+/** Exige un rôle d'administration de l'org (owner/admin) — gestion des rôles/membres. */
+export const requireOrgAdmin = (ctx: OrgContext): void => {
+  if (ctx.role !== 'owner' && ctx.role !== 'admin') {
+    throw new ForbiddenError("Réservé à l'administration de l'organisation")
   }
 }

@@ -11,7 +11,7 @@ import { ToolForm } from '../_components/tool-form'
 
 export default async function NouveauMaterielPage() {
   const ctx = await requireOrgContext()
-  if (!can(ctx.role, 'tool', 'create')) redirect('/materiel')
+  if (!can(ctx, 'tool', 'create')) redirect('/materiel')
 
   const [members, depots] = await Promise.all([listOrgMembers(ctx), listDepotOptions(ctx)])
 

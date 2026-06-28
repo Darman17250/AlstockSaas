@@ -37,12 +37,12 @@ export default async function TachesPage({ searchParams }: TachesPageProps) {
   const sp = await searchParams
   const tab: TabKey = sp.tab === 'team' ? 'team' : sp.tab === 'calendar' ? 'calendar' : 'mine'
   const scope = sp.scope === 'team' ? 'team' : 'mine'
-  const canEdit = can(ctx.role, 'activity', 'create')
+  const canEdit = can(ctx, 'activity', 'create')
 
   const tabHref = (key: TabKey) => (key === 'mine' ? '/taches' : `/taches?tab=${key}`)
 
   // Options pour le formulaire (uniquement si l'utilisateur peut éditer).
-  const canReadEquipment = can(ctx.role, 'equipment', 'read')
+  const canReadEquipment = can(ctx, 'equipment', 'read')
   const [members, clients, deals, sites, equipments] = canEdit
     ? await Promise.all([
         listOrgMembers(ctx),

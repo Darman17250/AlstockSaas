@@ -1,7 +1,7 @@
 # CLAUDE.md — CRM & Suivi de chantiers BTP
 
 Document de contexte fondateur. Claude Code le lit à chaque session. Il fait autorité sur l'architecture, les conventions et les garde-fous. En cas de doute, suivre ce document avant toute habitude par défaut.
-
+Lis toujours le cadrage-crm-chantier.md avant de commencer une session. 
 ---
 
 ## 1. Le produit

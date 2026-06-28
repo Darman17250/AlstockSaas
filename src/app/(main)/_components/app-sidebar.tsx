@@ -33,7 +33,12 @@ import {
 } from '@/components/ui/sidebar'
 import { ScannerDialog } from '@/components/qr/scanner-dialog'
 import { client } from '@/lib/auth/auth-client'
-import { can, type AppRole, type BusinessResource } from '@/lib/auth/permissions'
+import {
+  can,
+  type AppRole,
+  type BusinessResource,
+  type PermissionMatrix,
+} from '@/lib/auth/permissions'
 
 interface NavItem {
   label: string
@@ -61,16 +66,17 @@ const NAV_ITEMS: NavItem[] = [
 interface AppSidebarProps {
   orgName: string
   role: string
+  permissions: PermissionMatrix
   user: { name: string; email: string }
 }
 
-export const AppSidebar = ({ orgName, role, user }: AppSidebarProps) => {
+export const AppSidebar = ({ orgName, role, permissions, user }: AppSidebarProps) => {
   const pathname = usePathname()
   const router = useRouter()
   const [scannerOpen, setScannerOpen] = useState(false)
 
   const visibleItems = NAV_ITEMS.filter((item) => {
-    if (item.resource) return can(role, item.resource, 'read')
+    if (item.resource) return can({ role, permissions }, item.resource, 'read')
     if (item.roles) return item.roles.includes(role as AppRole)
     return true
   })

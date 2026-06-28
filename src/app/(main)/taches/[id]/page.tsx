@@ -59,12 +59,12 @@ export default async function TaskPage({ params }: TaskPageProps) {
     throw e
   }
 
-  const canEdit = can(ctx.role, 'activity', 'update')
-  const canDelete = can(ctx.role, 'activity', 'delete')
+  const canEdit = can(ctx, 'activity', 'update')
+  const canDelete = can(ctx, 'activity', 'delete')
   const documents = await listTaskDocuments(ctx, id)
   const storageConfigured = isStorageConfigured()
 
-  const canReadEquipment = can(ctx.role, 'equipment', 'read')
+  const canReadEquipment = can(ctx, 'equipment', 'read')
   const [members, clients, deals, sites, equipments] = canEdit
     ? await Promise.all([
         listOrgMembers(ctx),

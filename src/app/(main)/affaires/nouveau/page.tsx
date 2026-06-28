@@ -15,7 +15,7 @@ interface NouvelleAffairePageProps {
 
 export default async function NouvelleAffairePage({ searchParams }: NouvelleAffairePageProps) {
   const ctx = await requireOrgContext()
-  if (!can(ctx.role, 'deal', 'create')) redirect('/affaires')
+  if (!can(ctx, 'deal', 'create')) redirect('/affaires')
 
   const { clientId } = await searchParams
   const [clients, owners] = await Promise.all([listClientOptions(ctx), listOrgMembers(ctx)])

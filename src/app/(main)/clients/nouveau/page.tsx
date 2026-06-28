@@ -10,7 +10,7 @@ import { ClientForm } from '../_components/client-form'
 
 export default async function NouveauClientPage() {
   const ctx = await requireOrgContext()
-  if (!can(ctx.role, 'client', 'create')) redirect('/clients')
+  if (!can(ctx, 'client', 'create')) redirect('/clients')
 
   const owners = await listOrgMembers(ctx)
 

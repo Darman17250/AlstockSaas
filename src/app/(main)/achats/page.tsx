@@ -19,8 +19,8 @@ const formatDate = (d: string | null) =>
 export default async function AchatsPage() {
   const ctx = await requireOrgContext()
   const purchases = await listPurchases(ctx)
-  const canCreate = can(ctx.role, 'purchase', 'create')
-  const canManageSuppliers = can(ctx.role, 'supplier', 'read')
+  const canCreate = can(ctx, 'purchase', 'create')
+  const canManageSuppliers = can(ctx, 'supplier', 'read')
 
   return (
     <div className='mx-auto max-w-4xl px-4 py-8'>

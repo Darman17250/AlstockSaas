@@ -19,7 +19,7 @@ export default async function DepotsPage({ searchParams }: DepotsPageProps) {
   const sp = await searchParams
   const params = depotListParamsSchema.parse(sp)
   const { items, total, page, pageSize } = await listDepots(ctx, params)
-  const canCreate = can(ctx.role, 'depot', 'create')
+  const canCreate = can(ctx, 'depot', 'create')
 
   const hasFilters = Boolean(params.search || params.type)
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
