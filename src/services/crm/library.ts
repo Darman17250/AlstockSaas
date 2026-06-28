@@ -1,5 +1,5 @@
 import 'server-only'
-import { and, asc, eq, ilike, isNull, or, sql } from 'drizzle-orm'
+import { and, asc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm'
 
 import { db } from '@/database'
 import {
@@ -12,7 +12,11 @@ import {
 } from '@/database/schema'
 import { type OrgContext, NotFoundError, requirePermission } from '@/lib/auth/org-context'
 import { createSignedDownloadUrl } from '@/lib/supabase-storage'
-import type { AddLibraryProductInput, LibraryListParams } from '@/validation/library'
+import type {
+  AddLibraryProductInput,
+  BulkAddLibraryInput,
+  LibraryListParams,
+} from '@/validation/library'
 import { assertDepotInOrg } from './tool'
 import { applyEntryTx } from './stock'
 
@@ -258,4 +262,195 @@ export const addLibraryProductToOrg = async (
 
     return { id: created.id }
   })
+}
+
+// --- Vue par catégories (sélection multiple + ajout en masse) ---------------
+
+export interface CatalogSubcategory {
+  id: string
+  name: string
+  productCount: number
+}
+
+export interface CatalogCategory {
+  id: string
+  name: string
+  productCount: number
+  subcategories: CatalogSubcategory[]
+}
+
+/** Arborescence du catalogue avec le nombre de produits par catégorie/sous-catégorie. */
+export const listLibraryCatalog = async (ctx: OrgContext): Promise<CatalogCategory[]> => {
+  requirePermission(ctx, 'product', 'read')
+
+  const cats = await db
+    .select({ id: libraryCategory.id, name: libraryCategory.name })
+    .from(libraryCategory)
+    .where(isNull(libraryCategory.deletedAt))
+    .orderBy(asc(libraryCategory.position), asc(libraryCategory.name))
+
+  const subs = await db
+    .select({
+      id: librarySubcategory.id,
+      name: librarySubcategory.name,
+      categoryId: librarySubcategory.categoryId,
+    })
+    .from(librarySubcategory)
+    .where(isNull(librarySubcategory.deletedAt))
+    .orderBy(asc(librarySubcategory.position), asc(librarySubcategory.name))
+
+  const counts = await db
+    .select({
+      categoryId: libraryProduct.categoryId,
+      subcategoryId: libraryProduct.subcategoryId,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(libraryProduct)
+    .where(isNull(libraryProduct.deletedAt))
+    .groupBy(libraryProduct.categoryId, libraryProduct.subcategoryId)
+
+  const catCount = new Map<string, number>()
+  const subCount = new Map<string, number>()
+  for (const c of counts) {
+    catCount.set(c.categoryId, (catCount.get(c.categoryId) ?? 0) + c.count)
+    subCount.set(c.subcategoryId, (subCount.get(c.subcategoryId) ?? 0) + c.count)
+  }
+
+  return cats.map((cat) => ({
+    id: cat.id,
+    name: cat.name,
+    productCount: catCount.get(cat.id) ?? 0,
+    subcategories: subs
+      .filter((s) => s.categoryId === cat.id)
+      .map((s) => ({ id: s.id, name: s.name, productCount: subCount.get(s.id) ?? 0 })),
+  }))
+}
+
+export interface LibrarySubProduct {
+  id: string
+  title: string
+  unit: string
+  imagePath: string | null
+}
+
+/** Produits d'une sous-catégorie du catalogue (chargement à la demande). */
+export const listLibrarySubcategoryProducts = async (
+  ctx: OrgContext,
+  subcategoryId: string
+): Promise<LibrarySubProduct[]> => {
+  requirePermission(ctx, 'product', 'read')
+  return db
+    .select({
+      id: libraryProduct.id,
+      title: libraryProduct.title,
+      unit: libraryProduct.unit,
+      imagePath: libraryProduct.imagePath,
+    })
+    .from(libraryProduct)
+    .where(and(eq(libraryProduct.subcategoryId, subcategoryId), isNull(libraryProduct.deletedAt)))
+    .orderBy(asc(libraryProduct.title))
+}
+
+export interface BulkAddResult {
+  added: number
+  skipped: number
+}
+
+/**
+ * Copie en masse des produits du catalogue dans le stock de l'org, à partir
+ * d'une sélection de catégories, sous-catégories et/ou produits. Les doublons
+ * (même titre qu'un produit existant de l'org, ou en double dans la sélection)
+ * sont ignorés. Catégories/sous-catégories de l'org créées par nom au besoin.
+ */
+export const bulkAddLibraryProductsToOrg = async (
+  ctx: OrgContext,
+  input: BulkAddLibraryInput
+): Promise<BulkAddResult> => {
+  requirePermission(ctx, 'product', 'create')
+
+  const orFilters = []
+  if (input.categoryIds.length)
+    orFilters.push(inArray(libraryProduct.categoryId, input.categoryIds))
+  if (input.subcategoryIds.length)
+    orFilters.push(inArray(libraryProduct.subcategoryId, input.subcategoryIds))
+  if (input.productIds.length) orFilters.push(inArray(libraryProduct.id, input.productIds))
+  if (orFilters.length === 0) return { added: 0, skipped: 0 }
+
+  const libs = await db
+    .select({
+      title: libraryProduct.title,
+      description: libraryProduct.description,
+      unit: libraryProduct.unit,
+      imagePath: libraryProduct.imagePath,
+      categoryName: libraryCategory.name,
+      subcategoryName: librarySubcategory.name,
+    })
+    .from(libraryProduct)
+    .leftJoin(libraryCategory, eq(libraryProduct.categoryId, libraryCategory.id))
+    .leftJoin(librarySubcategory, eq(libraryProduct.subcategoryId, librarySubcategory.id))
+    .where(and(isNull(libraryProduct.deletedAt), or(...orFilters)))
+    .orderBy(asc(libraryProduct.title))
+
+  if (libs.length === 0) return { added: 0, skipped: 0 }
+
+  const existing = await db
+    .select({ title: product.title })
+    .from(product)
+    .where(and(eq(product.organizationId, ctx.organizationId), isNull(product.deletedAt)))
+  const seen = new Set(existing.map((e) => e.title.trim().toLowerCase()))
+
+  let added = 0
+  let skipped = 0
+
+  await db.transaction(async (tx) => {
+    const catCache = new Map<string, string>()
+    const subCache = new Map<string, string>()
+    const getCat = async (name: string) => {
+      const c = catCache.get(name)
+      if (c) return c
+      const id = await findOrCreateOrgCategory(tx, ctx.organizationId, name)
+      catCache.set(name, id)
+      return id
+    }
+    const getSub = async (categoryId: string, name: string) => {
+      const k = `${categoryId}|||${name}`
+      const c = subCache.get(k)
+      if (c) return c
+      const id = await findOrCreateOrgSubcategory(tx, ctx.organizationId, categoryId, name)
+      subCache.set(k, id)
+      return id
+    }
+
+    const toInsert: (typeof product.$inferInsert)[] = []
+    for (const lib of libs) {
+      const key = lib.title.trim().toLowerCase()
+      if (seen.has(key)) {
+        skipped++
+        continue
+      }
+      seen.add(key)
+      const categoryName = lib.categoryName ?? 'Catalogue'
+      const subcategoryName = lib.subcategoryName ?? categoryName
+      const categoryId = await getCat(categoryName)
+      const subcategoryId = await getSub(categoryId, subcategoryName)
+      toInsert.push({
+        organizationId: ctx.organizationId,
+        title: lib.title,
+        imagePath: lib.imagePath,
+        categoryId,
+        subcategoryId,
+        unit: lib.unit,
+        description: lib.description,
+        weightedAvgPrice: '0',
+      })
+      added++
+    }
+
+    const BATCH = 500
+    for (let i = 0; i < toInsert.length; i += BATCH) {
+      await tx.insert(product).values(toInsert.slice(i, i + BATCH))
+    }
+  })
+
+  return { added, skipped }
 }
