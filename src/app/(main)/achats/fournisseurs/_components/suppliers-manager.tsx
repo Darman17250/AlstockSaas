@@ -148,7 +148,7 @@ export const SuppliersManager = ({ suppliers, canManage }: SuppliersManagerProps
               {editing?.id ? 'Modifier le fournisseur' : 'Nouveau fournisseur'}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={submit}>
+          <form onSubmit={submit} className='flex min-h-0 flex-1 flex-col'>
             <DialogPanel className='space-y-4'>
               <div className='space-y-2'>
                 <Label htmlFor='name'>Nom</Label>
