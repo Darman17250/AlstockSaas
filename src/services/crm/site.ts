@@ -65,6 +65,7 @@ const toColumns = (input: SiteCreateInput | SiteUpdateInput) => ({
 export interface SiteOption {
   id: string
   name: string
+  clientId: string
 }
 
 /** Chantiers de l'organisation pour un sélecteur (ex. rattacher une tâche). */
@@ -72,7 +73,7 @@ export const listSiteOptions = async (ctx: OrgContext): Promise<SiteOption[]> =>
   requirePermission(ctx, 'site', 'read')
 
   return db
-    .select({ id: site.id, name: site.name })
+    .select({ id: site.id, name: site.name, clientId: site.clientId })
     .from(site)
     .where(and(eq(site.organizationId, ctx.organizationId), isNull(site.deletedAt)))
     .orderBy(desc(site.createdAt))

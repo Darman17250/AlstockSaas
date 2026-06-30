@@ -136,6 +136,9 @@ export const TaskFormDialog = ({
   const selectedDepot = depotItems.find((i) => i.value === depotId) ?? null
   const selectedTool = toolItems.find((i) => i.value === toolId) ?? null
 
+  // Chantiers proposés : restreints au client sélectionné, sinon tous.
+  const visibleSites = (sites ?? []).filter((s) => !clientId || s.clientId === clientId)
+
   const showClient = !locked?.clientId && clients
   const showDeal = !locked?.dealId && deals
   const showSite = !locked?.siteId && sites
@@ -304,7 +307,18 @@ export const TaskFormDialog = ({
                 <Combobox
                   items={clientItems}
                   value={selectedClient}
-                  onValueChange={(item: Item | null) => setClientId(item?.value ?? null)}
+                  onValueChange={(item: Item | null) => {
+                    const next = item?.value ?? null
+                    setClientId(next)
+                    // Si le chantier choisi n'appartient pas au nouveau client, on le retire.
+                    if (
+                      next &&
+                      siteId !== NONE &&
+                      !(sites ?? []).some((s) => s.id === siteId && s.clientId === next)
+                    ) {
+                      setSiteId(NONE)
+                    }
+                  }}
                   isItemEqualToValue={(a, b) => a?.value === b?.value}
                 >
                   <ComboboxInput placeholder='Rechercher un client…' showClear />
@@ -349,7 +363,18 @@ export const TaskFormDialog = ({
             {showSite && sites.length > 0 && (
               <div className='space-y-2'>
                 <Label>Chantier</Label>
-                <Select value={siteId} onValueChange={(v) => setSiteId(v ?? NONE)}>
+                <Select
+                  value={siteId}
+                  onValueChange={(v) => {
+                    const next = v ?? NONE
+                    setSiteId(next)
+                    // Sélectionner un chantier pré-remplit son client.
+                    if (next !== NONE) {
+                      const s = sites.find((x) => x.id === next)
+                      if (s) setClientId(s.clientId)
+                    }
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue>
                       {(value) =>
@@ -359,7 +384,7 @@ export const TaskFormDialog = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={NONE}>— Aucun</SelectItem>
-                    {sites.map((s) => (
+                    {visibleSites.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
                         {s.name}
                       </SelectItem>
